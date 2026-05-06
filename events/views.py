@@ -30,6 +30,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import EventFilter
 from .models import Event, Ticket
+from .permissions import IsOrganizer, IsOrganizerOrReadOnly, IsEventOwnerOrReadOnly
 from .serializers import (
     EventListSerializer,
     EventDetailSerializer,
@@ -40,31 +41,9 @@ from .serializers import (
 )
 
 
-# --------------------------------------------------------------------------- #
-# Custom permissions
-# --------------------------------------------------------------------------- #
-
-class IsOrganizerOrReadOnly(permissions.BasePermission):
-    """
-    - GET/HEAD/OPTIONS: available to anyone (public).
-    - Write operations: only for authenticated Event Organizers.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_organizer
-        )
-
-
-class IsEventOwnerOrReadOnly(permissions.BasePermission):
-    """Object-level: only the organizer who created the event can modify it."""
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.organizer == request.user
+# Permission classes are defined in events/permissions.py
+# IsOrganizer, IsOrganizerOrReadOnly, IsEventOwnerOrReadOnly
+# are imported above and applied per-view.
 
 
 # --------------------------------------------------------------------------- #
@@ -263,34 +242,41 @@ class TicketScanView(APIView):
     POST /api/tickets/<ticket_hash>/scan/
 
     Marks a ticket as scanned at the door.
-    Only accessible to Event Organizers.
+    Permission: IsOrganizer — only authenticated Event Organizers.
 
     Body: {} (empty — ticket identified via URL hash)
+
+    Responses:
+      200 — {"status": "success",  "message": "Access granted",    "ticket": {...}}
+      409 — {"status": "error",    "message": "Ticket already scanned", "scanned_at": "..."}
+      403 — {"status": "error",    "message": "You are not authorized to scan this event"}
+      404 — ticket hash not found
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOrganizer]
 
     def post(self, request, ticket_hash):
-        if not request.user.is_organizer:
-            return Response(
-                {"detail": "Only Event Organizers can scan tickets."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        ticket = get_object_or_404(
+            Ticket.objects.select_related("user", "event", "event__organizer"),
+            ticket_hash=ticket_hash,
+        )
 
-        ticket = get_object_or_404(Ticket, ticket_hash=ticket_hash)
-
-        # Verify the organizer owns the related event
+        # Organizer must own the event this ticket belongs to
         if ticket.event.organizer != request.user:
             return Response(
-                {"detail": "You do not own this event."},
+                {
+                    "status": "error",
+                    "message": "You are not authorized to scan this event.",
+                    "event": ticket.event.title,
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         if ticket.is_scanned:
             return Response(
                 {
-                    "status": "already_scanned",
+                    "status": "error",
+                    "message": "Ticket already scanned.",
                     "scanned_at": ticket.scanned_at,
-                    "detail": "This ticket was already scanned.",
                 },
                 status=status.HTTP_409_CONFLICT,
             )
@@ -298,7 +284,11 @@ class TicketScanView(APIView):
         ticket.mark_scanned()
         output = TicketSerializer(ticket, context={"request": request})
         return Response(
-            {"status": "success", "ticket": output.data},
+            {
+                "status": "success",
+                "message": "Access granted.",
+                "ticket": output.data,
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -307,47 +297,49 @@ class TicketVerifyView(APIView):
     """
     POST /api/tickets/verify/
 
-    Accepts a ticket_hash in the request body, checks if the ticket exists,
-    and marks it as scanned. Designed to be called by a QR code scanner.
+    Accepts a ticket_hash in the request body, verifies the ticket,
+    and marks it as scanned. Called by the QR code scanner page.
 
     Body: { "ticket_hash": "<64-char SHA-256 hash>" }
-    Auth: Bearer token — Organizer only.
+    Permission: IsOrganizer — only authenticated Event Organizers.
 
     Responses:
-      200 — { "status": "access_granted",  "ticket": {...} }
-      409 — { "status": "already_scanned", "scanned_at": "...", "detail": "..." }
-      403 — not an organizer
-      404 — ticket hash not found
+      200 — {"status": "success",  "message": "Access granted",           "ticket": {...}}
+      409 — {"status": "error",    "message": "Ticket already scanned",   "scanned_at": "..."}
+      403 — {"status": "error",    "message": "You are not authorized..."}
+      404 — {"status": "error",    "message": "Ticket not found"}
+      400 — {"status": "error",    "message": "ticket_hash is required"}
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOrganizer]
 
     def post(self, request):
-        # ── Auth check ─────────────────────────────────────────────────────
-        if not request.user.is_organizer:
-            return Response(
-                {"detail": "Only Event Organizers can verify tickets."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         # ── Validate input ─────────────────────────────────────────────────
         ticket_hash = request.data.get("ticket_hash", "").strip()
         if not ticket_hash:
             return Response(
-                {"detail": "ticket_hash is required."},
+                {"status": "error", "message": "ticket_hash is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ── Fetch ticket ───────────────────────────────────────────────────
-        ticket = get_object_or_404(
-            Ticket.objects.select_related("user", "event", "event__organizer"),
-            ticket_hash=ticket_hash,
-        )
+        # ── Fetch ticket (custom 404 message) ─────────────────────────────
+        try:
+            ticket = (
+                Ticket.objects
+                .select_related("user", "event", "event__organizer")
+                .get(ticket_hash=ticket_hash)
+            )
+        except Ticket.DoesNotExist:
+            return Response(
+                {"status": "error", "message": "Ticket not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         # ── Ownership check ────────────────────────────────────────────────
         if ticket.event.organizer != request.user:
             return Response(
                 {
-                    "detail": "You do not own this event and cannot verify its tickets.",
+                    "status": "error",
+                    "message": "You are not authorized to scan this event.",
                     "event": ticket.event.title,
                 },
                 status=status.HTTP_403_FORBIDDEN,
@@ -357,12 +349,11 @@ class TicketVerifyView(APIView):
         if ticket.is_scanned:
             return Response(
                 {
-                    "status": "already_scanned",
+                    "status": "error",
+                    "message": "Ticket already scanned.",
                     "scanned_at": ticket.scanned_at,
-                    "ticket_hash": ticket.ticket_hash,
+                    "attendee": ticket.user.username,
                     "event": ticket.event.title,
-                    "user": ticket.user.username,
-                    "detail": f"Ticket already scanned at {ticket.scanned_at:%Y-%m-%d %H:%M:%S UTC}.",
                 },
                 status=status.HTTP_409_CONFLICT,
             )
@@ -372,7 +363,8 @@ class TicketVerifyView(APIView):
         output = TicketSerializer(ticket, context={"request": request})
         return Response(
             {
-                "status": "access_granted",
+                "status": "success",
+                "message": "Access granted.",
                 "ticket": output.data,
             },
             status=status.HTTP_200_OK,
