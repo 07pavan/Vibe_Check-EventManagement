@@ -97,6 +97,13 @@ function purchaseTicket(eventId) {
   return apiFetch('/tickets/purchase/', { method: 'POST', body: JSON.stringify({ event: eventId }) });
 }
 function fetchMyTickets() { return apiFetch('/user/tickets/'); }
+function checkIsOrganizer() { return apiFetch('/auth/is-organizer/'); }
+function verifyTicket(ticketHash) {
+  return apiFetch('/tickets/verify/', {
+    method: 'POST',
+    body: JSON.stringify({ ticket_hash: ticketHash }),
+  });
+}
 
 // ── Organizer API ─────────────────────────────────────────────────────────
 function fetchOrganizerEvents(params = {}) {

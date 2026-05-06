@@ -112,3 +112,35 @@ class LogoutView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
+class IsOrganizerCheckView(generics.GenericAPIView):
+    """
+    GET /api/auth/is-organizer/
+
+    Lightweight gate check used by the scanner page on load.
+    Auth: Bearer token required.
+
+    Responses:
+      200 — { "is_organizer": true,  "username": "...", "role": "organizer" }
+      403 — { "is_organizer": false, "detail": "Access denied. Organizer role required." }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_organizer:
+            return Response(
+                {
+                    "is_organizer": False,
+                    "detail": "Access denied. Organizer role required.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return Response(
+            {
+                "is_organizer": True,
+                "username": request.user.username,
+                "role": request.user.role,
+                "email": request.user.email,
+            },
+            status=status.HTTP_200_OK,
+        )
