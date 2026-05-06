@@ -179,20 +179,6 @@ body { font-family:'Inter',sans-serif; background:#fef7ff; min-height:max(884px,
       </div>
     </section>
 
-    <!-- Recent Tickets Preview -->
-    <section class="px-margin-mobile mb-xl">
-      <div class="flex justify-between items-center mb-lg">
-        <h3 class="text-headline-md font-bold">Recent Tickets</h3>
-        <a href="tickets.html" class="text-label-caps text-primary font-bold">SEE ALL</a>
-      </div>
-      <div id="recent-tickets" class="space-y-md"></div>
-      <div id="no-tickets" class="hidden glass-card rounded-xl p-xl flex flex-col items-center text-center border border-outline-variant/20">
-        <span class="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-md">confirmation_number</span>
-        <p class="font-bold text-on-surface mb-xs">No tickets yet</p>
-        <p class="text-body-md text-on-surface-variant mb-lg">Grab your first ticket and join the vibe.</p>
-        <a href="index.html" class="bg-primary text-on-primary px-xl py-sm rounded-full font-bold text-label-caps shadow-lg shadow-primary/20 active:scale-95 transition-all">DISCOVER EVENTS</a>
-      </div>
-    </section>
 
     <!-- Account Actions -->
     <section class="px-margin-mobile mb-xl">
@@ -278,7 +264,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('main-content').classList.remove('hidden');
 
   try {
-    // Fetch profile + tickets in parallel
+    // Fetch profile + tickets in parallel for stats
     const [profile, ticketsData] = await Promise.all([
       apiFetch('/auth/profile/'),
       fetchMyTickets()
@@ -288,7 +274,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('profile-content').classList.remove('hidden');
 
     renderProfile(profile);
-    renderTickets(ticketsData.results || ticketsData);
+    // Update stats only (ticket list lives in tickets.html)
+    const tickets = ticketsData.results || ticketsData || [];
+    const upcoming = tickets.filter(t => t.event_status === 'Upcoming').length;
+    const past     = tickets.filter(t => t.event_status === 'Past').length;
+    document.getElementById('stat-tickets').textContent  = tickets.length;
+    document.getElementById('stat-upcoming').textContent = upcoming;
+    document.getElementById('stat-past').textContent     = past;
   } catch(e) {
     document.getElementById('skeleton-state').classList.add('hidden');
     document.getElementById('profile-content').classList.remove('hidden');
@@ -319,53 +311,6 @@ function renderProfile(profile) {
   }
 }
 
-function renderTickets(tickets) {
-  const upcoming = tickets.filter(t => t.event.is_upcoming && !t.is_scanned);
-  const past     = tickets.filter(t => !t.event.is_upcoming || t.is_scanned);
-
-  document.getElementById('stat-tickets').textContent  = tickets.length;
-  document.getElementById('stat-upcoming').textContent = upcoming.length;
-  document.getElementById('stat-past').textContent     = past.length;
-
-  const container = document.getElementById('recent-tickets');
-  const preview = tickets.slice(0, 3); // show last 3
-
-  if (!preview.length) {
-    document.getElementById('no-tickets').classList.remove('hidden');
-    return;
-  }
-
-  container.innerHTML = preview.map(t => {
-    const ev = t.event;
-    const statusColor = t.is_scanned ? 'bg-gray-400' : ev.is_upcoming ? 'bg-primary' : 'bg-orange-400';
-    const statusLabel = t.is_scanned ? 'USED' : ev.is_upcoming ? 'UPCOMING' : 'PAST';
-    return `
-    <div class="ticket-card glass-card rounded-xl overflow-hidden border border-white/30 shadow-[0_4px_16px_rgba(124,58,237,0.08)] flex gap-md p-md cursor-pointer" onclick="window.location.href='tickets.html'">
-      <div class="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
-        <img src="${ev.image || PLACEHOLDER}" alt="${ev.title}" class="w-full h-full object-cover" onerror="this.src='${PLACEHOLDER}'"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-start justify-between gap-sm">
-          <h4 class="font-bold text-on-surface text-body-md leading-snug truncate">${ev.title}</h4>
-          <span class="${statusColor} text-white text-[10px] font-bold px-sm py-xs rounded-full shrink-0">${statusLabel}</span>
-        </div>
-        <div class="flex items-center gap-xs text-on-surface-variant mt-xs">
-          <span class="material-symbols-outlined text-[14px]">calendar_today</span>
-          <span class="text-label-caps">${fmtDate(ev.date)}</span>
-        </div>
-        <div class="flex items-center gap-xs text-on-surface-variant">
-          <span class="material-symbols-outlined text-[14px]">location_on</span>
-          <span class="text-label-caps truncate">${ev.venue_name}</span>
-        </div>
-        <div class="mt-sm flex items-center gap-xs text-primary">
-          <span class="material-symbols-outlined text-[16px]">qr_code_2</span>
-          <span class="text-label-caps font-bold">Show QR →</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
 
 async function doLogout() {
   const btn = event.currentTarget;

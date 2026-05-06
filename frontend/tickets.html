@@ -1,67 +1,152 @@
 <!DOCTYPE html>
 <html lang="en" class="light">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>My Tickets — VIBE CHECK</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-<script>tailwind.config={theme:{extend:{colors:{"primary":"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff","on-primary-container":"#ede0ff","surface":"#fef7ff","surface-container-lowest":"#ffffff","surface-container-low":"#f9f1ff","surface-container":"#f3ebfa","surface-container-high":"#ede5f4","on-surface":"#1d1a24","on-surface-variant":"#4a4455","outline":"#7b7487","outline-variant":"#ccc3d8","background":"#fef7ff","secondary":"#00687a","error":"#ba1a1a"},spacing:{"xs":"4px","sm":"8px","md":"16px","lg":"24px","xl":"48px","gutter":"16px","margin-mobile":"20px"},borderRadius:{DEFAULT:"1rem",lg:"2rem",full:"9999px"},fontSize:{"headline-lg":["32px",{lineHeight:"1.2",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],"body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],"body-lg":["18px",{lineHeight:"1.6",fontWeight:"400"}],"label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}]}}}}</script>
+<!-- QR Code library loaded FIRST so it's ready before JS runs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+tailwind.config = {
+  darkMode:"class",
+  theme:{ extend:{
+    colors:{
+      "primary":"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff","on-primary-container":"#ede0ff",
+      "secondary":"#00687a","tertiary":"#7d3d00",
+      "surface":"#fef7ff","surface-container-lowest":"#ffffff","surface-container-low":"#f9f1ff",
+      "surface-container":"#f3ebfa","surface-container-high":"#ede5f4","surface-variant":"#e8dfee",
+      "on-surface":"#1d1a24","on-surface-variant":"#4a4455",
+      "outline":"#7b7487","outline-variant":"#ccc3d8",
+      "background":"#fef7ff","error":"#ba1a1a"
+    },
+    borderRadius:{ DEFAULT:"1rem", lg:"2rem", full:"9999px" },
+    spacing:{ xs:"4px",sm:"8px",md:"16px",lg:"24px",xl:"48px",gutter:"16px","margin-mobile":"20px" },
+    fontSize:{
+      "headline-lg":["32px",{lineHeight:"1.2",fontWeight:"700"}],
+      "headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],
+      "body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+      "label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}]
+    }
+  }}
+}
+</script>
 <style>
-.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
-body{font-family:'Inter',sans-serif;background:#fef7ff}
-.glass-card{background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.4)}
-.skeleton{background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.ticket-card{transition:box-shadow .2s}
-.ticket-card:hover{box-shadow:0 8px 32px rgba(124,58,237,.15)}
-.qr-section{display:none}.qr-section.open{display:block}
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+body { font-family:'Inter',sans-serif; background:#fef7ff; }
+.glass-card { background:rgba(255,255,255,.8); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.4); }
+.skeleton { background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.ticket-card { transition:transform .2s,box-shadow .2s; }
+.ticket-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(124,58,237,.14); }
+.qr-panel { max-height:0; overflow:hidden; transition:max-height .4s ease; }
+.qr-panel.open { max-height:320px; }
+/* Fix QRCode.js canvas sizing */
+.qr-wrap canvas, .qr-wrap img { width:160px !important; height:160px !important; border-radius:.5rem; }
+.filter-btn.active { background:#630ed4; color:#fff; box-shadow:0 4px 12px rgba(99,14,212,.3); }
+.filter-btn:not(.active) { background:rgba(124,58,237,.08); color:#630ed4; }
+.nav-active { background:rgba(124,58,237,.12); color:#630ed4; border-radius:.75rem; }
 </style>
 </head>
 <body class="text-on-surface pb-28">
 
-<header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl flex justify-between items-center px-margin-mobile h-16 border-b border-outline-variant/20">
-  <a href="index.html" class="text-primary"><span class="material-symbols-outlined">arrow_back</span></a>
-  <h1 class="font-extrabold tracking-tighter text-primary text-xl">MY TICKETS</h1>
-  <span class="w-6"></span>
+<!-- Ambient blobs -->
+<div class="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-20">
+  <div class="absolute -top-24 -right-24 w-80 h-80 bg-primary rounded-full blur-[100px]"></div>
+  <div class="absolute bottom-0 -left-24 w-64 h-64 bg-secondary rounded-full blur-[80px]"></div>
+</div>
+
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl flex items-center px-margin-mobile h-16 border-b border-outline-variant/20 shadow-sm">
+  <a href="index.html" class="text-primary active:scale-95 transition-transform mr-md">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </a>
+  <h1 class="font-extrabold tracking-tighter text-primary text-xl flex-1 text-center mr-8">MY TICKETS</h1>
 </header>
 
-<main class="pt-24 px-margin-mobile">
-  <div id="auth-wall" class="hidden text-center py-20">
+<main class="relative z-10 pt-20 px-margin-mobile pb-4">
+
+  <!-- Auth wall -->
+  <div id="auth-wall" class="hidden text-center py-24">
     <span class="material-symbols-outlined text-6xl text-primary mb-4 block">lock</span>
     <h2 class="text-headline-md font-bold mb-2">Sign in to view tickets</h2>
     <p class="text-on-surface-variant mb-6">Your purchased tickets will appear here.</p>
-    <a href="login.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25">SIGN IN</a>
+    <a href="login.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25 active:scale-95 transition-all">SIGN IN</a>
   </div>
 
+  <!-- Skeleton -->
   <div id="loading-state">
-    <div class="mb-lg"><div class="h-8 skeleton rounded-lg w-40 mb-2"></div><div class="h-4 skeleton rounded-lg w-56"></div></div>
-    <div class="space-y-lg"><div class="skeleton rounded-xl h-52"></div><div class="skeleton rounded-xl h-32"></div><div class="skeleton rounded-xl h-32"></div></div>
-  </div>
-
-  <div id="tickets-view" class="hidden">
-    <div class="mb-lg">
-      <h2 class="text-headline-lg font-bold text-on-surface mb-xs">My Tickets</h2>
-      <p class="text-on-surface-variant" id="ticket-count-label"></p>
+    <div class="mb-lg"><div class="h-8 skeleton rounded-lg w-44 mb-2"></div><div class="h-4 skeleton rounded-lg w-56"></div></div>
+    <!-- Stats skeleton -->
+    <div class="grid grid-cols-3 gap-md mb-lg">
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
     </div>
-    <div id="tickets-list" class="space-y-lg"></div>
+    <div class="space-y-lg">
+      <div class="skeleton rounded-xl h-56"></div>
+      <div class="skeleton rounded-xl h-40"></div>
+      <div class="skeleton rounded-xl h-40"></div>
+    </div>
   </div>
 
-  <div id="empty-state" class="hidden text-center py-20">
-    <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block">confirmation_number</span>
-    <h2 class="text-headline-md font-bold mb-2">No tickets yet</h2>
-    <p class="text-on-surface-variant mb-6">Discover events and grab your spot!</p>
-    <a href="index.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25">DISCOVER EVENTS</a>
-  </div>
+  <!-- Main content after load -->
+  <div id="tickets-view" class="hidden">
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-3 gap-md mb-lg">
+      <div class="glass-card p-md rounded-xl text-center border border-primary/10">
+        <p id="stat-total" class="text-headline-md font-extrabold text-primary">—</p>
+        <p class="text-label-caps text-on-surface-variant mt-xs">TOTAL</p>
+      </div>
+      <div class="glass-card p-md rounded-xl text-center border border-secondary/10">
+        <p id="stat-upcoming" class="text-headline-md font-extrabold text-secondary">—</p>
+        <p class="text-label-caps text-on-surface-variant mt-xs">UPCOMING</p>
+      </div>
+      <div class="glass-card p-md rounded-xl text-center border border-orange-400/20">
+        <p id="stat-past" class="text-headline-md font-extrabold text-orange-500">—</p>
+        <p class="text-label-caps text-on-surface-variant mt-xs">PAST</p>
+      </div>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="flex gap-sm mb-lg overflow-x-auto hide-scrollbar pb-1">
+      <button id="filter-all"      class="filter-btn active  px-lg py-sm rounded-full text-label-caps whitespace-nowrap transition-all" onclick="setFilter('all')">ALL</button>
+      <button id="filter-upcoming" class="filter-btn          px-lg py-sm rounded-full text-label-caps whitespace-nowrap transition-all" onclick="setFilter('upcoming')">🎯 UPCOMING</button>
+      <button id="filter-past"     class="filter-btn          px-lg py-sm rounded-full text-label-caps whitespace-nowrap transition-all" onclick="setFilter('past')">📅 PAST</button>
+      <button id="filter-used"     class="filter-btn          px-lg py-sm rounded-full text-label-caps whitespace-nowrap transition-all" onclick="setFilter('used')">✅ USED</button>
+    </div>
+
+    <!-- Section label -->
+    <div class="flex justify-between items-center mb-md">
+      <h2 class="text-headline-md font-bold text-on-surface" id="section-label">All Tickets</h2>
+      <span id="count-label" class="text-label-caps text-primary"></span>
+    </div>
+
+    <!-- Ticket list -->
+    <div id="tickets-list" class="space-y-lg"></div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden text-center py-16">
+      <span class="material-symbols-outlined text-6xl text-on-surface-variant/40 mb-4 block">confirmation_number</span>
+      <h2 class="text-headline-md font-bold mb-2">No tickets here</h2>
+      <p class="text-on-surface-variant mb-6">Try a different filter or discover new events.</p>
+      <a href="index.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25 active:scale-95 transition-all">DISCOVER EVENTS</a>
+    </div>
+
+  </div><!-- /tickets-view -->
+
 </main>
 
-<!-- Bottom Nav — 4 tabs -->
+<!-- Bottom Nav -->
 <nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
   <a href="index.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
     <span class="material-symbols-outlined">explore</span>
     <span class="text-label-caps mt-xs">Discover</span>
   </a>
-  <div class="flex flex-col items-center justify-center bg-primary/10 text-primary rounded-xl px-4 py-2">
+  <div class="nav-active flex flex-col items-center justify-center px-4 py-2">
     <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">local_activity</span>
     <span class="text-label-caps mt-xs">My Tickets</span>
   </div>
@@ -79,126 +164,219 @@ body{font-family:'Inter',sans-serif;background:#fef7ff}
 <script>
 const PLACEHOLDER = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBG0kETVkyKmuooroSqWkqUKcaDZjoUS446cKpcRrRBQoMUtbw8EgGnXqVe8fTqIWuGOHGJQlyx6Y1yoMQ0kM3GNKRnsoU4gQqMVfEswZ7Cp2tyrV2eyiVdN0b3MkbP9p7T7STCiMh_PqsWcYYK0Q55EXcRAtKXe3Rn2-kjEI8unDAKB7ui5SCRNch9rIOJ-6ug1jlhYkMk3mZ9NsRQ3ZdzjOIncfg4JBH1NRg7OMERIGdPX3UljTD8DDXr8otuRPzv6F-6ImKBYo';
 
-window.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('loading-state').classList.remove('hidden');
+let allTickets = [];
+let currentFilter = 'all';
 
+// ── Boot ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
   if (!isLoggedIn()) {
     document.getElementById('loading-state').classList.add('hidden');
     document.getElementById('auth-wall').classList.remove('hidden');
     return;
   }
-
-  const user = getUser();
-  if (user) {
-    document.getElementById('nav-profile').href = '#';
-    document.getElementById('nav-profile').querySelector('span.material-symbols-outlined').textContent = 'logout';
-    document.getElementById('nav-profile').querySelector('.text-label-caps').textContent = 'Sign Out';
-    document.getElementById('nav-profile').onclick = e => { e.preventDefault(); clearAuth(); window.location.href = 'login.html'; };
-  }
-
-  try {
-    const data = await fetchMyTickets();
-    const tickets = data.results || data;
-    document.getElementById('loading-state').classList.add('hidden');
-
-    if (!tickets.length) {
-      document.getElementById('empty-state').classList.remove('hidden');
-      return;
-    }
-
-    document.getElementById('ticket-count-label').textContent = `You have ${tickets.length} upcoming experience${tickets.length !== 1 ? 's' : ''}`;
-    document.getElementById('tickets-list').innerHTML = tickets.map(renderTicket).join('');
-    document.getElementById('tickets-view').classList.remove('hidden');
-
-    // Generate QR codes
-    tickets.forEach(t => generateQR(t.ticket_hash, `qr-${t.id}`));
-  } catch(e) {
-    document.getElementById('loading-state').classList.add('hidden');
-    document.getElementById('tickets-list').innerHTML = '<p class="text-error text-center py-8">Failed to load tickets.</p>';
-    document.getElementById('tickets-view').classList.remove('hidden');
-  }
+  await loadTickets();
 });
 
-function renderTicket(t) {
-  const ev = t.event;
-  const upcoming = ev.is_upcoming;
-  const scanned = t.is_scanned;
+async function loadTickets() {
+  document.getElementById('loading-state').classList.remove('hidden');
+  document.getElementById('tickets-view').classList.add('hidden');
+  document.getElementById('empty-state').classList.add('hidden');
+  try {
+    // Fetch ALL tickets — smart sort (upcoming first) from backend
+    const data = await fetchMyTickets();
+    allTickets = data.results || data || [];
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('tickets-view').classList.remove('hidden');
+    updateStats();
+    renderFilter();
+  } catch(e) {
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('tickets-view').classList.remove('hidden');
+    document.getElementById('tickets-list').innerHTML =
+      `<div class="text-center py-12"><span class="material-symbols-outlined text-5xl text-error mb-3 block">error</span>
+       <p class="font-bold text-error mb-1">Failed to load tickets</p>
+       <p class="text-on-surface-variant text-sm">Check your connection and try again.</p>
+       <button onclick="loadTickets()" class="mt-6 px-lg py-sm bg-primary text-on-primary rounded-full text-label-caps font-bold active:scale-95 transition-all">RETRY</button>
+       </div>`;
+  }
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  const upcoming = allTickets.filter(t => t.event_status === 'Upcoming').length;
+  const past     = allTickets.filter(t => t.event_status === 'Past').length;
+  document.getElementById('stat-total').textContent    = allTickets.length;
+  document.getElementById('stat-upcoming').textContent = upcoming;
+  document.getElementById('stat-past').textContent     = past;
+}
+
+// ── Filter ─────────────────────────────────────────────────────────────────
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`filter-${f}`).classList.add('active');
+  renderFilter();
+}
+
+function renderFilter() {
+  let filtered = allTickets;
+  const labels = { all:'All Tickets', upcoming:'Upcoming Events', past:'Past Events', used:'Used Tickets' };
+
+  if (currentFilter === 'upcoming') filtered = allTickets.filter(t => t.event_status === 'Upcoming');
+  else if (currentFilter === 'past') filtered = allTickets.filter(t => t.event_status === 'Past');
+  else if (currentFilter === 'used') filtered = allTickets.filter(t => t.event_status === 'Used');
+
+  document.getElementById('section-label').textContent = labels[currentFilter];
+  document.getElementById('count-label').textContent = filtered.length ? `${filtered.length} ticket${filtered.length !== 1 ? 's' : ''}` : '';
+
+  if (!filtered.length) {
+    document.getElementById('tickets-list').innerHTML = '';
+    document.getElementById('empty-state').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('tickets-list').innerHTML = filtered.map(renderTicketCard).join('');
+  // Generate QR codes after DOM is ready
+  filtered.forEach(t => generateQR(t.ticket_hash, `qr-wrap-${t.id}`));
+}
+
+// ── Ticket Card ────────────────────────────────────────────────────────────
+function renderTicketCard(t) {
+  const ev      = t.event;
+  const status  = t.event_status;   // "Upcoming" | "Past" | "Used"
+  const img     = ev.image || PLACEHOLDER;
+
+  const badgeClass = {
+    Upcoming: 'bg-primary text-white',
+    Past:     'bg-orange-500 text-white',
+    Used:     'bg-gray-500 text-white',
+  }[status] || 'bg-gray-400 text-white';
+
+  const priceLabel = parseFloat(t.price_paid) === 0 ? 'FREE' : '₹' + parseFloat(t.price_paid).toFixed(0);
+
   return `
-  <div class="ticket-card glass-card rounded-xl overflow-hidden border border-white/30 shadow-[0_4px_24px_rgba(124,58,237,0.08)]">
+  <div class="ticket-card glass-card rounded-2xl overflow-hidden border border-white/30 shadow-[0_4px_24px_rgba(124,58,237,0.08)]">
+
+    <!-- Event image hero -->
     <div class="relative h-44">
-      <img src="${ev.image || PLACEHOLDER}" alt="${ev.title}" class="w-full h-full object-cover" onerror="this.src='${PLACEHOLDER}'"/>
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-      <div class="absolute top-3 right-3 ${upcoming && !scanned ? 'bg-primary' : scanned ? 'bg-gray-500' : 'bg-orange-500'} text-white px-3 py-1 rounded-full text-label-caps font-bold">
-        ${scanned ? 'USED' : upcoming ? 'UPCOMING' : 'PAST'}
-      </div>
-      <div class="absolute bottom-3 left-4 text-white">
-        <p class="text-label-caps opacity-80">${fmtDate(ev.date)}</p>
-        <h3 class="font-bold text-lg leading-tight">${ev.title}</h3>
+      <img src="${img}" alt="${ev.title}" class="w-full h-full object-cover" onerror="this.src='${PLACEHOLDER}'"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+
+      <!-- Status badge -->
+      <span class="absolute top-3 right-3 ${badgeClass} px-3 py-1 rounded-full text-label-caps font-bold shadow-md">
+        ${status.toUpperCase()}
+      </span>
+
+      <!-- Category badge -->
+      <span class="absolute top-3 left-3 bg-black/40 backdrop-blur text-white px-sm py-xs rounded-full text-[10px] font-bold uppercase">
+        ${CATEGORY_EMOJI[ev.category] || '🎉'} ${ev.category_display || ev.category}
+      </span>
+
+      <!-- Title + date overlaid at bottom -->
+      <div class="absolute bottom-0 left-0 right-0 px-md pb-md">
+        <p class="text-label-caps text-white/70 mb-xs">${fmtDate(ev.date)}</p>
+        <h3 class="font-bold text-white text-lg leading-snug">${ev.title}</h3>
       </div>
     </div>
-    <div class="p-lg">
-      <div class="flex items-center gap-sm text-on-surface-variant mb-lg">
-        <span class="material-symbols-outlined text-[18px]">location_on</span>
-        <span class="text-body-md">${ev.venue_name}</span>
+
+    <!-- Info body -->
+    <div class="p-md space-y-md">
+
+      <!-- Venue + tickets remaining row -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-xs text-on-surface-variant">
+          <span class="material-symbols-outlined text-[16px]">location_on</span>
+          <span class="text-sm truncate max-w-[180px]">${ev.venue_name}</span>
+        </div>
+        <span class="text-label-caps text-on-surface-variant">${ev.tickets_remaining} spots left</span>
       </div>
-      <!-- Collapsed QR toggle -->
-      <button onclick="toggleQR(${t.id})" class="w-full flex items-center justify-between py-sm px-md bg-surface-container-low rounded-xl border border-outline-variant/30 mb-sm transition-colors hover:bg-surface-container">
+
+      <!-- Price + Purchase date -->
+      <div class="grid grid-cols-2 gap-sm">
+        <div class="bg-surface-container-low rounded-xl px-md py-sm text-center border border-outline-variant/20">
+          <p class="text-label-caps text-on-surface-variant">PAID</p>
+          <p class="font-extrabold text-primary text-body-md">${priceLabel}</p>
+        </div>
+        <div class="bg-surface-container-low rounded-xl px-md py-sm text-center border border-outline-variant/20">
+          <p class="text-label-caps text-on-surface-variant">PURCHASED</p>
+          <p class="font-bold text-on-surface text-xs">${new Date(t.purchased_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</p>
+        </div>
+      </div>
+
+      <!-- QR Code toggle button -->
+      <button
+        id="qr-btn-${t.id}"
+        onclick="toggleQR(${t.id})"
+        class="w-full flex items-center justify-between px-md py-sm bg-primary/5 hover:bg-primary/10 active:scale-95 rounded-xl border border-primary/15 transition-all"
+      >
         <div class="flex items-center gap-sm text-primary">
-          <span class="material-symbols-outlined">qr_code_2</span>
+          <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">qr_code_2</span>
           <span class="text-label-caps font-bold">VIEW QR TICKET</span>
         </div>
         <span class="material-symbols-outlined text-on-surface-variant" id="qr-arrow-${t.id}">expand_more</span>
       </button>
-      <div id="qr-section-${t.id}" class="qr-section bg-white rounded-xl p-lg flex flex-col items-center border-2 border-dashed border-outline-variant mb-md">
-        <div class="bg-primary/5 p-md rounded-lg mb-md">
-          <canvas id="qr-${t.id}" class="w-40 h-40"></canvas>
+
+      <!-- QR Panel (collapsed by default) -->
+      <div id="qr-panel-${t.id}" class="qr-panel">
+        <div class="bg-white rounded-xl p-lg flex flex-col items-center border-2 border-dashed border-outline-variant/40 shadow-inner">
+
+          <div id="qr-wrap-${t.id}" class="qr-wrap mb-md bg-primary/5 p-sm rounded-xl">
+            <!-- QRCode.js renders here -->
+            <div class="w-40 h-40 skeleton rounded-lg flex items-center justify-center">
+              <span class="material-symbols-outlined text-3xl text-on-surface-variant/30">qr_code</span>
+            </div>
+          </div>
+
+          <p class="text-label-caps text-on-surface-variant text-center tracking-widest mb-xs">SCAN AT ENTRANCE</p>
+          <p class="text-[9px] text-outline font-mono break-all text-center px-4 opacity-60">${t.ticket_hash}</p>
+
+          ${t.is_scanned ? `
+          <div class="mt-md bg-gray-100 text-gray-600 px-lg py-sm rounded-full text-label-caps text-center">
+            ✓ Scanned ${t.scanned_at ? new Date(t.scanned_at).toLocaleString('en-IN') : ''}
+          </div>` : ''}
+
+          <!-- Download QR hint -->
+          <p class="mt-sm text-[10px] text-outline/60 text-center">Screenshot to save your ticket</p>
         </div>
-        <p class="text-label-caps text-on-surface-variant text-center">SCAN AT ENTRANCE</p>
-        <p class="text-[10px] text-outline mt-1 font-mono break-all text-center">${t.ticket_hash.substring(0, 20)}…</p>
-        ${scanned ? '<div class="mt-3 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-label-caps">✓ Scanned at '+(t.scanned_at ? new Date(t.scanned_at).toLocaleString() : '—')+'</div>' : ''}
       </div>
-      <div class="flex gap-md">
-        <div class="flex-1 bg-surface-container-low p-sm rounded-xl text-center">
-          <p class="text-label-caps text-on-surface-variant">PAID</p>
-          <p class="font-bold text-primary">${fmtPrice(t.price_paid)}</p>
-        </div>
-        <div class="flex-1 bg-surface-container-low p-sm rounded-xl text-center">
-          <p class="text-label-caps text-on-surface-variant">PURCHASED</p>
-          <p class="font-bold text-on-surface text-xs">${new Date(t.purchased_at).toLocaleDateString()}</p>
-        </div>
-      </div>
+
+      <!-- View event button -->
+      <a href="event.html?id=${ev.id}" class="block w-full text-center py-sm rounded-xl border border-outline-variant/30 text-label-caps font-bold text-on-surface-variant hover:border-primary hover:text-primary transition-all active:scale-95">
+        VIEW EVENT DETAILS →
+      </a>
+
     </div>
   </div>`;
 }
 
+// ── QR toggle + generate ───────────────────────────────────────────────────
 function toggleQR(id) {
-  const sec = document.getElementById(`qr-section-${id}`);
-  const arrow = document.getElementById(`qr-arrow-${id}`);
-  sec.classList.toggle('open');
-  arrow.textContent = sec.classList.contains('open') ? 'expand_less' : 'expand_more';
+  const panel = document.getElementById(`qr-panel-${id}`);
+  const arrow  = document.getElementById(`qr-arrow-${id}`);
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  arrow.textContent = isOpen ? 'expand_more' : 'expand_less';
 }
 
-// Generate real QR code using qrcodejs
-function generateQR(hash, canvasId) {
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-  script.onload = () => {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    new QRCode(canvas.parentElement, {
-      text: hash,
-      width: 160, height: 160,
-      colorDark: '#630ed4', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-    canvas.remove();
-  };
-  if (!window._qrLoaded) {
-    document.head.appendChild(script);
-    window._qrLoaded = true;
-  } else {
-    script.onload();
-  }
+const _qrGenerated = new Set();
+function generateQR(hash, wrapperId) {
+  if (_qrGenerated.has(wrapperId)) return;
+  _qrGenerated.add(wrapperId);
+
+  const wrap = document.getElementById(wrapperId);
+  if (!wrap || typeof QRCode === 'undefined') return;
+
+  // Clear skeleton
+  wrap.innerHTML = '';
+  new QRCode(wrap, {
+    text: hash,
+    width: 160,
+    height: 160,
+    colorDark: '#630ed4',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H,
+  });
 }
 </script>
-</body></html>
+</body>
+</html>
