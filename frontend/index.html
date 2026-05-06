@@ -176,24 +176,9 @@ body { font-family:'Inter',sans-serif; background:#fef7ff; min-height:max(884px,
   </section>
 </main>
 
-<!-- Bottom Nav — 4 tabs -->
-<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
-  <div class="nav-active flex flex-col items-center justify-center px-4 py-2">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">explore</span>
-    <span class="text-label-caps mt-xs">Discover</span>
-  </div>
-  <a href="tickets.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
-    <span class="material-symbols-outlined">local_activity</span>
-    <span class="text-label-caps mt-xs">My Tickets</span>
-  </a>
-  <a href="liked.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
-    <span class="material-symbols-outlined">favorite</span>
-    <span class="text-label-caps mt-xs">Liked</span>
-  </a>
-  <a href="profile.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
-    <span class="material-symbols-outlined">person</span>
-    <span class="text-label-caps mt-xs">Profile</span>
-  </a>
+<!-- Bottom Nav — role-aware, rendered by JS -->
+<nav id="bottom-nav" class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
+  <!-- filled by renderNav() -->
 </nav>
 
 <!-- FAB for organizers -->
@@ -215,6 +200,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function updateNav() {
   const user = getUser();
+  renderNav(user);
   if (!user) return;
   document.getElementById('user-info').classList.remove('hidden');
   document.getElementById('menu-username').textContent = user.username;
@@ -226,6 +212,55 @@ function updateNav() {
     document.getElementById('organizer-link').classList.remove('hidden');
     document.getElementById('fab-create').classList.remove('hidden');
   }
+}
+
+// ── Role-aware bottom nav ─────────────────────────────────────────────────
+function renderNav(user) {
+  const nav  = document.getElementById('bottom-nav');
+  const TAB  = 'flex flex-col items-center justify-center px-4 py-2 transition-all duration-200 active:scale-90';
+  const LINK = `${TAB} text-on-surface-variant hover:text-primary`;
+  const ACT  = `${TAB} bg-primary/10 text-primary rounded-xl`;
+
+  // ── Organizer nav: My Events · Scanner · Profile ──────────────────────
+  if (user && user.role === 'organizer') {
+    nav.innerHTML = `
+      <a href="organizer.html" class="${LINK}">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span class="text-label-caps mt-xs">My Events</span>
+      </a>
+      <a href="../scanner.html" class="${LINK}">
+        <span class="material-symbols-outlined">qr_code_scanner</span>
+        <span class="text-label-caps mt-xs">Scanner</span>
+      </a>
+      <a href="tickets.html" class="${LINK}">
+        <span class="material-symbols-outlined">confirmation_number</span>
+        <span class="text-label-caps mt-xs">Tickets</span>
+      </a>
+      <a href="profile.html" class="${LINK}">
+        <span class="material-symbols-outlined">person</span>
+        <span class="text-label-caps mt-xs">Profile</span>
+      </a>`;
+    return;
+  }
+
+  // ── Regular user / guest nav: Discover · My Tickets · Liked · Profile ──
+  nav.innerHTML = `
+    <div class="${ACT}">
+      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">explore</span>
+      <span class="text-label-caps mt-xs">Discover</span>
+    </div>
+    <a href="tickets.html" class="${LINK}">
+      <span class="material-symbols-outlined">local_activity</span>
+      <span class="text-label-caps mt-xs">My Tickets</span>
+    </a>
+    <a href="liked.html" class="${LINK}">
+      <span class="material-symbols-outlined">favorite</span>
+      <span class="text-label-caps mt-xs">Liked</span>
+    </a>
+    <a href="profile.html" class="${LINK}">
+      <span class="material-symbols-outlined">person</span>
+      <span class="text-label-caps mt-xs">Profile</span>
+    </a>`;
 }
 
 function toggleMenu() {
