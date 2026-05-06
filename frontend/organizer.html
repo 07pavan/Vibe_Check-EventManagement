@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -25,16 +25,43 @@ input:focus,select:focus,textarea:focus{border-color:#630ed4;box-shadow:0 0 0 3p
 label{display:block;font-size:12px;font-weight:600;color:#4a4455;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
 </style>
 </head>
-<body class="pb-10">
+<body class="pb-28">
 
 <!-- Header -->
+<!-- Side Menu Overlay -->
+<div id="menu-overlay" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onclick="toggleMenu()"></div>
+<nav id="side-menu" class="hidden fixed top-0 left-0 h-full w-72 z-[70] bg-surface shadow-2xl flex flex-col p-6 gap-4">
+  <div class="flex items-center justify-between mb-4">
+    <span class="font-extrabold text-primary tracking-tighter text-xl">VIBE CHECK</span>
+    <button onclick="toggleMenu()" class="text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
+  </div>
+  <div class="bg-surface-container-low rounded-xl p-md mb-2">
+    <p class="font-bold text-on-surface" id="menu-username"></p>
+    <p class="text-label-caps text-on-surface-variant">🎪 Event Organizer</p>
+  </div>
+  <a href="index.html" class="flex items-center gap-md px-md py-sm rounded-xl text-on-surface hover:bg-surface-container transition-colors">
+    <span class="material-symbols-outlined text-primary">explore</span>
+    <span class="font-semibold">Discover Events</span>
+  </a>
+  <a href="profile.html" class="flex items-center gap-md px-md py-sm rounded-xl text-on-surface hover:bg-surface-container transition-colors">
+    <span class="material-symbols-outlined text-primary">person</span>
+    <span class="font-semibold">My Profile</span>
+  </a>
+  <div class="flex-1"></div>
+  <button onclick="handleLogout()" class="flex items-center gap-md px-md py-sm rounded-xl text-error hover:bg-red-50 transition-colors">
+    <span class="material-symbols-outlined">logout</span>
+    <span class="font-semibold">Sign Out</span>
+  </button>
+</nav>
 <header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-outline-variant/20 flex items-center justify-between px-margin-mobile h-16">
   <div class="flex items-center gap-3">
-    <a href="index.html" class="text-primary"><span class="material-symbols-outlined">arrow_back</span></a>
-    <h1 class="font-extrabold tracking-tighter text-primary text-xl">ORGANIZER DASHBOARD</h1>
+    <button onclick="toggleMenu()" class="text-primary active:scale-95 transition-transform">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <h1 class="font-extrabold tracking-tighter text-primary text-xl">MY EVENTS</h1>
   </div>
   <div class="flex items-center gap-2">
-    <span class="text-sm text-on-surface-variant" id="hdr-username"></span>
+    <span class="text-sm text-on-surface-variant font-semibold" id="hdr-username"></span>
     <button onclick="openModal()" class="flex items-center gap-1 bg-primary text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg shadow-primary/20 active:scale-95 transition-transform">
       <span class="material-symbols-outlined text-sm">add</span> NEW EVENT
     </button>
@@ -183,6 +210,12 @@ let allEvents   = [];
 let editingId   = null;
 let deletingId  = null;
 
+function toggleMenu() {
+  document.getElementById('menu-overlay').classList.toggle('hidden');
+  document.getElementById('side-menu').classList.toggle('hidden');
+}
+function handleLogout() { logout(); }
+
 // ── Init ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   if (!isLoggedIn()) {
@@ -195,6 +228,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   document.getElementById('hdr-username').textContent = user.username;
+  document.getElementById('menu-username').textContent = user.username;
   document.getElementById('main').classList.remove('hidden');
   await loadEvents();
 });
@@ -456,5 +490,24 @@ async function confirmDelete() {
   }
 }
 </script>
+<!-- Bottom Nav — Organizer -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
+  <div class="flex flex-col items-center justify-center bg-primary/10 text-primary rounded-xl px-4 py-2">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">dashboard</span>
+    <span class="text-label-caps mt-xs">My Events</span>
+  </div>
+  <a href="../scanner.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all active:scale-90">
+    <span class="material-symbols-outlined">qr_code_scanner</span>
+    <span class="text-label-caps mt-xs">Scanner</span>
+  </a>
+  <a href="organizer-attendees.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all active:scale-90">
+    <span class="material-symbols-outlined">confirmation_number</span>
+    <span class="text-label-caps mt-xs">Tickets</span>
+  </a>
+  <a href="profile.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all active:scale-90">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-caps mt-xs">Profile</span>
+  </a>
+</nav>
 </body>
 </html>
