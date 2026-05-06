@@ -83,7 +83,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "bio",
             "date_joined",
         ]
-        read_only_fields = ["id", "username", "date_joined"]
+        read_only_fields = ["id", "username", "role", "date_joined"]
 
 
 class PublicUserSerializer(serializers.ModelSerializer):

@@ -5,6 +5,8 @@ Auth and user-profile API views.
 """
 
 from django.contrib.auth import get_user_model
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -18,10 +20,15 @@ from .serializers import (
 User = get_user_model()
 
 
+@method_decorator(
+    ratelimit(key="ip", rate="10/m", method="POST", block=True),
+    name="post"
+)
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     POST /api/auth/token/
     Returns an access + refresh JWT pair enriched with role & username.
+    Rate-limited to 10 attempts/minute per IP to prevent brute-force attacks.
     """
     serializer_class = CustomTokenObtainPairSerializer
 

@@ -25,9 +25,14 @@ class EventListSerializer(serializers.ModelSerializer):
     """
 
     organizer = PublicUserSerializer(read_only=True)
-    tickets_remaining = serializers.IntegerField(read_only=True)
+    tickets_remaining = serializers.SerializerMethodField()
     is_upcoming = serializers.BooleanField(read_only=True)
     category_display = serializers.CharField(read_only=True, source="get_category_display")
+
+    def get_tickets_remaining(self, obj):
+        # Use DB annotation if available (list view), else Python property (detail view)
+        val = getattr(obj, "_tickets_remaining", None)
+        return val if val is not None else obj.tickets_remaining
 
     class Meta:
         model = Event
@@ -55,10 +60,18 @@ class EventDetailSerializer(serializers.ModelSerializer):
     """
 
     organizer = PublicUserSerializer(read_only=True)
-    tickets_remaining = serializers.IntegerField(read_only=True)
-    tickets_sold = serializers.IntegerField(read_only=True)
+    tickets_remaining = serializers.SerializerMethodField()
+    tickets_sold = serializers.SerializerMethodField()
     is_upcoming = serializers.BooleanField(read_only=True)
     category_display = serializers.CharField(read_only=True, source="get_category_display")
+
+    def get_tickets_remaining(self, obj):
+        val = getattr(obj, "_tickets_remaining", None)
+        return val if val is not None else obj.tickets_remaining
+
+    def get_tickets_sold(self, obj):
+        val = getattr(obj, "_tickets_sold", None)
+        return val if val is not None else obj.tickets_sold
 
     class Meta:
         model = Event
@@ -136,10 +149,18 @@ class OrganizerEventSerializer(serializers.ModelSerializer):
       - scanned_count    : how many tickets have been scanned at door
     """
 
-    tickets_remaining = serializers.IntegerField(read_only=True)
-    tickets_sold      = serializers.IntegerField(read_only=True)
+    tickets_remaining = serializers.SerializerMethodField()
+    tickets_sold      = serializers.SerializerMethodField()
     is_upcoming       = serializers.BooleanField(read_only=True)
     category_display  = serializers.CharField(read_only=True, source="get_category_display")
+
+    def get_tickets_remaining(self, obj):
+        val = getattr(obj, "_tickets_remaining", None)
+        return val if val is not None else obj.tickets_remaining
+
+    def get_tickets_sold(self, obj):
+        val = getattr(obj, "_tickets_sold", None)
+        return val if val is not None else obj.tickets_sold
 
     # Derived management fields
     revenue       = serializers.SerializerMethodField()

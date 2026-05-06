@@ -22,6 +22,7 @@ POST   /api/tickets/verify/      — verify & scan ticket via body hash (QR scan
 """
 
 from django.shortcuts import get_object_or_404
+from django.db.models import Count, F, ExpressionWrapper, IntegerField
 from rest_framework import generics, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -83,9 +84,19 @@ class EventListCreateView(generics.ListCreateAPIView):
     ordering = ["date"]
 
     def get_queryset(self):
-        """Only show published events in public listing."""
-        qs = Event.objects.select_related("organizer").filter(is_published=True)
-        return qs
+        """Only show published events — tickets_remaining annotated at DB level to avoid N+1."""
+        return (
+            Event.objects
+            .select_related("organizer")
+            .filter(is_published=True)
+            .annotate(
+                _tickets_sold=Count("tickets"),
+                _tickets_remaining=ExpressionWrapper(
+                    F("total_tickets") - Count("tickets"),
+                    output_field=IntegerField(),
+                ),
+            )
+        )
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -139,14 +150,28 @@ class OrganizerEventListView(generics.ListAPIView):
     search_fields = ["title", "venue_name"]
 
     def get_queryset(self):
-        if not self.request.user.is_organizer:
-            return Event.objects.none()
         return (
             Event.objects
             .select_related("organizer")
             .prefetch_related("tickets")
             .filter(organizer=self.request.user)
+            .annotate(
+                _tickets_sold=Count("tickets"),
+                _tickets_remaining=ExpressionWrapper(
+                    F("total_tickets") - Count("tickets"),
+                    output_field=IntegerField(),
+                ),
+            )
         )
+
+    def get(self, request, *args, **kwargs):
+        """Return 403 explicitly for non-organizers instead of empty 200."""
+        if not request.user.is_organizer:
+            return Response(
+                {"detail": "Only Event Organizers can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().get(request, *args, **kwargs)
 
 
 # --------------------------------------------------------------------------- #
