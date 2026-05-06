@@ -207,19 +207,55 @@ class UserTicketListView(generics.ListAPIView):
 
     Returns all tickets owned by the currently authenticated user.
     Auth: Bearer token required.
+
+    Sorting:
+      Default — upcoming events first (sorted by event date ASC),
+                then past events (sorted by event date DESC).
+      Override with ?ordering=purchased_at | event__date
+
+    Filtering:
+      ?status=upcoming  — events whose date > now and not yet scanned
+      ?status=past      — events whose date <= now
+      ?status=used      — tickets that have already been scanned
     """
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["purchased_at", "event__date"]
-    ordering = ["-purchased_at"]
 
     def get_queryset(self):
-        return (
+        from django.utils import timezone
+        from django.db.models import Case, When, Value, IntegerField
+
+        now = timezone.now()
+        status_filter = self.request.query_params.get("status", "").lower()
+
+        qs = (
             Ticket.objects
             .select_related("user", "event", "event__organizer")
             .filter(user=self.request.user)
         )
+
+        # ── Optional status filter ─────────────────────────────────────────
+        if status_filter == "upcoming":
+            qs = qs.filter(event__date__gt=now, is_scanned=False)
+        elif status_filter == "past":
+            qs = qs.filter(event__date__lte=now)
+        elif status_filter == "used":
+            qs = qs.filter(is_scanned=True)
+
+        # ── Smart sort: upcoming first (ASC by date), then past (DESC) ─────
+        # If client passes ?ordering= explicitly, skip smart sort
+        if "ordering" not in self.request.query_params:
+            qs = qs.annotate(
+                _sort_group=Case(
+                    When(event__date__gt=now, then=Value(0)),  # upcoming = group 0
+                    default=Value(1),                           # past     = group 1
+                    output_field=IntegerField(),
+                )
+            ).order_by("_sort_group", "event__date")
+
+        return qs
 
 
 class TicketScanView(APIView):

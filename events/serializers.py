@@ -281,10 +281,17 @@ class TicketPurchaseSerializer(serializers.ModelSerializer):
 class TicketSerializer(serializers.ModelSerializer):
     """
     Full ticket representation returned after purchase or in user's ticket list.
+
+    Top-level fields for convenience (mirrors event nested data):
+      - is_upcoming    : True if event is in the future
+      - event_status   : human-readable label — "Upcoming" | "Past" | "Used"
+      - qr_data        : ticket_hash string to encode as QR code
     """
 
-    event = EventListSerializer(read_only=True)
-    qr_data = serializers.SerializerMethodField()
+    event        = EventListSerializer(read_only=True)
+    qr_data      = serializers.SerializerMethodField()
+    is_upcoming  = serializers.SerializerMethodField()
+    event_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
@@ -293,6 +300,8 @@ class TicketSerializer(serializers.ModelSerializer):
             "event",
             "ticket_hash",
             "qr_data",
+            "is_upcoming",
+            "event_status",
             "is_scanned",
             "scanned_at",
             "purchased_at",
@@ -306,3 +315,18 @@ class TicketSerializer(serializers.ModelSerializer):
         Format: <ticket_hash>  (the backend validates this on scan)
         """
         return obj.ticket_hash
+
+    def get_is_upcoming(self, obj) -> bool:
+        """True if the related event is still in the future."""
+        return obj.event.is_upcoming
+
+    def get_event_status(self, obj) -> str:
+        """
+        Human-readable status for the ticket wallet UI.
+          'Used'     — ticket was already scanned at the door
+          'Upcoming' — event is in the future and ticket is valid
+          'Past'     — event has already happened
+        """
+        if obj.is_scanned:
+            return "Used"
+        return "Upcoming" if obj.event.is_upcoming else "Past"
