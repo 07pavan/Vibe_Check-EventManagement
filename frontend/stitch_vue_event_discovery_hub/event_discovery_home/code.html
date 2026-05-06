@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#f9f1ff",
+                    "secondary-container": "#57dffe",
+                    "surface-container-high": "#ede5f4",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "primary": "#630ed4",
+                    "surface-tint": "#732ee4",
+                    "on-surface-variant": "#4a4455",
+                    "outline": "#7b7487",
+                    "secondary-fixed": "#acedff",
+                    "on-background": "#1d1a24",
+                    "outline-variant": "#ccc3d8",
+                    "primary-fixed-dim": "#d2bbff",
+                    "primary-container": "#7c3aed",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "surface-container": "#f3ebfa",
+                    "inverse-surface": "#332f39",
+                    "error": "#ba1a1a",
+                    "secondary": "#00687a",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "on-error": "#ffffff",
+                    "inverse-on-surface": "#f6eefc",
+                    "surface-variant": "#e8dfee",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#301400",
+                    "primary-fixed": "#eaddff",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-primary": "#d2bbff",
+                    "tertiary": "#7d3d00",
+                    "on-secondary-fixed": "#001f26",
+                    "surface-dim": "#dfd7e6",
+                    "on-secondary-container": "#006172",
+                    "on-tertiary-container": "#ffe0cd",
+                    "surface": "#fef7ff",
+                    "on-primary-container": "#ede0ff",
+                    "surface-container-highest": "#e8dfee",
+                    "tertiary-fixed-dim": "#ffb784",
+                    "tertiary-fixed": "#ffdcc6",
+                    "surface-bright": "#fef7ff",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#713700",
+                    "on-primary-fixed": "#25005a",
+                    "on-surface": "#1d1a24",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#a15100",
+                    "on-secondary": "#ffffff",
+                    "background": "#fef7ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "base": "4px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "gutter": "16px",
+                    "margin-mobile": "20px",
+                    "md": "16px",
+                    "xl": "48px"
+            },
+            "fontFamily": {
+                    "display-xl": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "display-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #fef7ff; }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-xl flex justify-between items-center px-margin-mobile h-16 w-full">
+<button class="text-primary dark:text-primary-fixed active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-display-xl text-headline-md font-extrabold tracking-tighter text-primary dark:text-primary-fixed uppercase">VIBE CHECK</h1>
+<button class="text-primary dark:text-primary-fixed active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</header>
+<main class="pt-16 pb-24 overflow-x-hidden">
+<!-- Hero Section -->
+<section class="relative h-[420px] flex flex-col justify-end px-margin-mobile pb-xl">
+<div class="absolute inset-0 z-0">
+<img alt="Event Hero" class="w-full h-full object-cover" data-alt="A cinematic low-angle shot of a massive concert crowd at night, with vibrant electric violet and cyan stage lights cutting through haze. The atmosphere is electric, capturing the peak of a live music festival under a starry sky. The aesthetic is modern and high-contrast, perfectly aligning with a premium event discovery brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0cKlBMaSYlsFK4Jt2wfLoXZGAhepUJJZssGFgik2SUIGVw1zojY3upKpiIpR8lKBsb1KKLqg-IepF0a4ZG4ydTR2w3LDTbVJyzh61bPws3t3dnV1pLkyaBpEm-8PmTz4KKgCNMYPmFgQUEP5OKOYQ7iZEv1VYwx0FdaZ9v6OvzOu_1lZpn3GrYhB1O57QGDlswXKvW2UX0BdYhNdd_aIWCS8EmADdgeemMT6tRNlMHyPPu3wosXGVNcP1k1_ytAjT_SD3psLWJr4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+</div>
+<div class="relative z-10 w-full">
+<h2 class="font-display-xl text-display-xl text-on-surface mb-md">Find your next core memory.</h2>
+<div class="w-full glass-card rounded-full flex items-center px-md py-sm shadow-xl">
+<span class="material-symbols-outlined text-primary mr-sm" data-icon="explore">explore</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-md text-on-surface placeholder:text-outline" placeholder="Event Name or Location" type="text"/>
+</div>
+</div>
+</section>
+<!-- Category Filters -->
+<section class="px-margin-mobile py-lg overflow-x-auto hide-scrollbar whitespace-nowrap flex gap-sm items-center">
+<button class="bg-primary text-on-primary px-lg py-sm rounded-full font-label-caps text-label-caps transition-all active:scale-95">ALL</button>
+<button class="bg-primary-container/10 text-primary px-lg py-sm rounded-full font-label-caps text-label-caps hover:bg-primary-container/20 transition-all active:scale-95">MUSIC</button>
+<button class="bg-primary-container/10 text-primary px-lg py-sm rounded-full font-label-caps text-label-caps hover:bg-primary-container/20 transition-all active:scale-95">TECH</button>
+<button class="bg-primary-container/10 text-primary px-lg py-sm rounded-full font-label-caps text-label-caps hover:bg-primary-container/20 transition-all active:scale-95">FOOD</button>
+<button class="bg-primary-container/10 text-primary px-lg py-sm rounded-full font-label-caps text-label-caps hover:bg-primary-container/20 transition-all active:scale-95">ART</button>
+</section>
+<!-- Interactive Map Preview Section -->
+<section class="px-margin-mobile mb-xl">
+<div class="w-full h-48 rounded-xl overflow-hidden relative shadow-lg">
+<img alt="Map Preview" class="w-full h-full object-cover grayscale brightness-110" data-alt="A stylized overhead map view of a modern metropolitan city area, featuring soft pastel colors and highlighted points of interest in vibrant violet. The design is clean and minimal, using a light mode aesthetic with high-contrast UI markers that pulse slightly. This visual represents an interactive mapping experience for discovering local events." data-location="London" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARJ4ACaVU1Ke1aRTbMYPrA0j93m0QxotDpAN8nakOyw35HVekHrj7F3--dyYjIvToCvlfCxaUT5_pES8iFhMIW3Ty4FB1fCgthnJUxdLRjwGEK9IUs8ZOJvt_wC35BUpMZ4fe1wonKtbNs6nTLUyEGBxiIE65I9bOUp_YXipk6gphAeToCPmpKt31T610XdvG8mVzKZTIXbp5W7M-yC5VdbCFtKVGJfNsQbV4dqaoOfW72hR7bSoQszsMLhYQ3UQqhf1SiqV0OT2M"/>
+<div class="absolute inset-0 bg-primary/10 pointer-events-none"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-[40px]" data-icon="location_on" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<div class="bg-surface px-md py-xs rounded-full shadow-md mt-sm border border-outline-variant">
+<p class="font-label-caps text-label-caps text-primary">MAP EXPLORER</p>
+</div>
+</div>
+<button class="absolute bottom-sm right-sm bg-surface p-sm rounded-full shadow-md">
+<span class="material-symbols-outlined text-on-surface" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</section>
+<!-- Event Grid -->
+<section class="px-margin-mobile">
+<div class="flex justify-between items-center mb-lg">
+<h3 class="font-headline-md text-headline-md text-on-surface">Trending Now</h3>
+<span class="font-label-caps text-label-caps text-primary cursor-pointer">SEE ALL</span>
+</div>
+<!-- Asymmetric Grid Layout -->
+<div class="grid grid-cols-1 gap-lg">
+<!-- Card 1 -->
+<div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(124,58,237,0.06)] border border-surface-variant transition-all hover:-translate-y-1">
+<div class="aspect-[16/9] relative">
+<img alt="Tech Summit" class="w-full h-full object-cover" data-alt="A high-energy photograph of a tech conference keynote, featuring a large screen with abstract purple graphics and a silhouetted presenter. The audience is blurred in the foreground under soft cool lighting, creating a professional yet vibrant atmosphere typical of a modern technology summit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBG0kETVkyKmuooroSqWkqUKcaDZjoUS446cKpcRrRBQoMUtbw8EgGnXqVe8fTqIWuGOHGJQlyx6Y1yoMQ0kM3GNKRnsoU4gQqMVfEswZ7Cp2tyrV2eyiVdN0b3MkbP9p7T7STCiMh_PqsWcYYK0Q55EXcRAtKXe3Rn2-kjEI8unDAKB7ui5SCRNch9rIOJ-6ug1jlhYkMk3mZ9NsRQ3ZdzjOIncfg4JBH1NRg7OMERIGdPX3UljTD8DDXr8otuRPzv6F-6ImKBYo"/>
+<div class="absolute top-sm right-sm bg-primary-container text-on-primary-container px-md py-xs rounded-full font-label-caps text-[10px] shadow-sm">$199.00</div>
+</div>
+<div class="p-md">
+<div class="flex items-center text-outline mb-xs">
+<span class="material-symbols-outlined text-sm mr-xs" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-caps text-[11px] tracking-wider">OCT 24, 2024 • 10:00 AM</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-md">Future Forward: Tech Summit</h4>
+<div class="flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-200"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-300"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center">
+<span class="text-[10px] font-bold text-on-primary-container">+12</span>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-full font-label-caps text-label-caps active:scale-95 transition-transform shadow-lg shadow-primary/20">
+                                VIEW DETAILS
+                            </button>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(124,58,237,0.06)] border border-surface-variant transition-all hover:-translate-y-1">
+<div class="aspect-[16/9] relative">
+<img alt="Jazz Under the Stars" class="w-full h-full object-cover" data-alt="A vibrant outdoor jazz festival at sunset, with string lights crisscrossing the scene and silhouettes of musicians playing saxophones on a small stage. The sky is a gradient of orange and deep violet, casting a warm, romantic glow over a group of attendees enjoying wine and music in a lush park setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8LNUGvUphaxqJLQT0R-Wpnhqtzc5sxQxKVyBxfEw1q3oHymYSUa4kJ-70lDLZgyZnDpNYhUx-iT1tYaIrrPg4oVoRIsZ338ZF0EHWhqO2M3p9tbo-4JJ19mJfAdFsiakHJJLPGhQr-Q7hv-wdxPHHh0XkdnWFw6qwhsYMx5t-wwRLFexoV1DHyx1vYt3244mjX0coe7b-cM1LCfmj6CJJk28ESPC1prP6gdRm39LBY_8zomgBJolpFSVGh8yIBtmkQaOT0JLMPvA"/>
+<div class="absolute top-sm right-sm bg-primary-container text-on-primary-container px-md py-xs rounded-full font-label-caps text-[10px] shadow-sm">$149.00</div>
+</div>
+<div class="p-md">
+<div class="flex items-center text-outline mb-xs">
+<span class="material-symbols-outlined text-sm mr-xs" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-caps text-[11px] tracking-wider">OCT 26, 2024 • 7:00 PM</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-md">Jazz Under the Stars</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center text-secondary">
+<span class="material-symbols-outlined text-sm mr-xs" data-icon="location_on">location_on</span>
+<span class="font-body-md">Bandra Kurla Complex</span>
+</div>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-full font-label-caps text-label-caps active:scale-95 transition-transform shadow-lg shadow-primary/20">
+                                VIEW DETAILS
+                            </button>
+</div>
+</div>
+</div>
+<!-- Bento Style Card Small -->
+<div class="grid grid-cols-2 gap-md">
+<div class="bg-secondary-container/20 p-md rounded-xl flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-secondary text-display-xl" data-icon="local_activity">local_activity</span>
+<div>
+<p class="font-headline-md text-headline-md text-on-secondary-container">12</p>
+<p class="font-label-caps text-label-caps text-on-secondary-container">SAVED TICKETS</p>
+</div>
+</div>
+<div class="bg-tertiary-container/20 p-md rounded-xl flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-tertiary text-display-xl" data-icon="celebration">celebration</span>
+<div>
+<p class="font-headline-md text-headline-md text-on-tertiary-container">New</p>
+<p class="font-label-caps text-label-caps text-on-tertiary-container">FOOD FESTS</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-xl flex justify-around items-center w-full px-gutter py-sm pb-safe shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
+<div class="flex flex-col items-center justify-center bg-primary-container/20 dark:bg-primary-container/40 text-primary dark:text-primary-fixed-dim rounded-xl px-4 py-2 active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+<span class="font-label-caps text-label-caps mt-xs">Discover</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-2 hover:text-primary active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-label-caps text-label-caps mt-xs">Map</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-2 hover:text-primary active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+<span class="font-label-caps text-label-caps mt-xs">Saved</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-2 hover:text-primary active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps mt-xs">Profile</span>
+</div>
+</nav>
+<!-- FAB (Floating Action Button) - Contextually placed for Home -->
+<div class="fixed bottom-24 right-margin-mobile z-40">
+<button class="w-14 h-14 bg-primary text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="add" style="font-variation-settings: 'wght' 600;">add</span>
+</button>
+</div>
+</body></html>

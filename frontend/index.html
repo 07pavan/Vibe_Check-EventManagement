@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Discover — VIBE CHECK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>tailwind.config={theme:{extend:{colors:{"primary":"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff","on-primary-container":"#ede0ff","surface":"#fef7ff","surface-container-lowest":"#ffffff","surface-container-low":"#f9f1ff","surface-container":"#f3ebfa","surface-variant":"#e8dfee","on-surface":"#1d1a24","on-surface-variant":"#4a4455","outline":"#7b7487","outline-variant":"#ccc3d8","background":"#fef7ff","secondary":"#00687a","tertiary":"#7d3d00","error":"#ba1a1a"},spacing:{"xs":"4px","sm":"8px","md":"16px","lg":"24px","xl":"48px","gutter":"16px","margin-mobile":"20px"},borderRadius:{DEFAULT:"1rem",lg:"2rem",full:"9999px"},fontSize:{"display-xl":["48px",{lineHeight:"1.1",letterSpacing:"-0.02em",fontWeight:"800"}],"headline-lg":["32px",{lineHeight:"1.2",letterSpacing:"-0.01em",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],"body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],"body-lg":["18px",{lineHeight:"1.6",fontWeight:"400"}],"label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}]}}}}</script>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+body{font-family:'Inter',sans-serif;background:#fef7ff}
+.glass-card{background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.4)}
+.hide-scrollbar::-webkit-scrollbar{display:none}.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+.cat-btn{transition:all .2s;cursor:pointer}
+.cat-btn.active{background:#630ed4;color:#fff}
+.cat-btn:not(.active){background:rgba(124,58,237,.08);color:#630ed4}
+.event-card{transition:transform .2s,box-shadow .2s}
+.event-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(124,58,237,.15)}
+.skeleton{background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body class="text-on-surface pb-28">
+
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl flex justify-between items-center px-margin-mobile h-16 border-b border-outline-variant/20 shadow-sm">
+  <span class="material-symbols-outlined text-primary cursor-pointer" onclick="toggleMenu()">menu</span>
+  <h1 class="font-extrabold tracking-tighter text-primary text-xl">VIBE CHECK</h1>
+  <div class="flex items-center gap-2">
+    <span id="auth-icon" class="material-symbols-outlined text-primary cursor-pointer" onclick="handleAuthBtn()">person</span>
+  </div>
+</header>
+
+<!-- Side Menu -->
+<div id="menu-overlay" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onclick="toggleMenu()"></div>
+<nav id="side-menu" class="hidden fixed top-0 left-0 h-full w-72 z-[70] bg-surface shadow-2xl flex flex-col p-6 gap-4">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-extrabold text-primary text-xl tracking-tighter">VIBE CHECK</h2>
+    <span class="material-symbols-outlined text-on-surface-variant cursor-pointer" onclick="toggleMenu()">close</span>
+  </div>
+  <div id="user-info" class="hidden bg-surface-container-low rounded-xl p-4 mb-2">
+    <p class="font-bold text-on-surface" id="menu-username"></p>
+    <p class="text-label-caps text-on-surface-variant" id="menu-role"></p>
+  </div>
+  <a href="index.html" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold">
+    <span class="material-symbols-outlined">explore</span> Discover
+  </a>
+  <a href="tickets.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container text-on-surface-variant font-semibold transition-colors">
+    <span class="material-symbols-outlined">local_activity</span> My Tickets
+  </a>
+  <a id="scanner-link" href="../scanner.html" class="hidden flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container text-on-surface-variant font-semibold transition-colors">
+    <span class="material-symbols-outlined">qr_code_scanner</span> Scanner
+  </a>
+  <a id="organizer-link" href="organizer.html" class="hidden flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container text-on-surface-variant font-semibold transition-colors">
+    <span class="material-symbols-outlined">dashboard</span> Organizer Dashboard
+  </a>
+  <div class="mt-auto">
+    <button id="logout-btn" onclick="handleLogout()" class="hidden w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 font-semibold transition-colors">
+      <span class="material-symbols-outlined">logout</span> Sign Out
+    </button>
+    <a id="login-link" href="login.html" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white font-bold rounded-full text-center justify-center">
+      <span class="material-symbols-outlined">login</span> Sign In
+    </a>
+  </div>
+</nav>
+
+<main class="pt-16 pb-8 overflow-x-hidden">
+  <!-- Hero -->
+  <section class="relative h-[380px] flex flex-col justify-end px-margin-mobile pb-xl">
+    <div class="absolute inset-0 z-0">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0cKlBMaSYlsFK4Jt2wfLoXZGAhepUJJZssGFgik2SUIGVw1zojY3upKpiIpR8lKBsb1KKLqg-IepF0a4ZG4ydTR2w3LDTbVJyzh61bPws3t3dnV1pLkyaBpEm-8PmTz4KKgCNMYPmFgQUEP5OKOYQ7iZEv1VYwx0FdaZ9v6OvzOu_1lZpn3GrYhB1O57QGDlswXKvW2UX0BdYhNdd_aIWCS8EmADdgeemMT6tRNlMHyPPu3wosXGVNcP1k1_ytAjT_SD3psLWJr4"
+        class="w-full h-full object-cover" alt="Event Hero"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent"></div>
+    </div>
+    <div class="relative z-10 w-full">
+      <h2 class="text-display-xl font-extrabold text-on-surface mb-md">Find your next<br/>core memory.</h2>
+      <div class="w-full glass-card rounded-full flex items-center px-md py-sm shadow-xl">
+        <span class="material-symbols-outlined text-primary mr-sm">search</span>
+        <input id="search-input" class="bg-transparent border-none focus:ring-0 w-full text-body-md text-on-surface placeholder:text-outline outline-none"
+          placeholder="Search events…" oninput="debounceSearch(this.value)"/>
+        <span id="search-clear" class="hidden material-symbols-outlined text-outline cursor-pointer" onclick="clearSearch()">close</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Category Filters -->
+  <section class="px-margin-mobile py-lg overflow-x-auto hide-scrollbar whitespace-nowrap flex gap-sm items-center">
+    <button class="cat-btn active px-lg py-sm rounded-full text-label-caps" onclick="filterCat('')" data-cat="">ALL</button>
+    <button class="cat-btn px-lg py-sm rounded-full text-label-caps" onclick="filterCat('music')" data-cat="music">🎵 MUSIC</button>
+    <button class="cat-btn px-lg py-sm rounded-full text-label-caps" onclick="filterCat('tech')" data-cat="tech">💻 TECH</button>
+    <button class="cat-btn px-lg py-sm rounded-full text-label-caps" onclick="filterCat('food')" data-cat="food">🍜 FOOD</button>
+    <button class="cat-btn px-lg py-sm rounded-full text-label-caps" onclick="filterCat('arts')" data-cat="arts">🎨 ARTS</button>
+  </section>
+
+  <!-- Event Grid -->
+  <section class="px-margin-mobile">
+    <div class="flex justify-between items-center mb-lg">
+      <h3 class="text-headline-md font-bold text-on-surface" id="section-title">Trending Now</h3>
+      <span class="text-label-caps text-primary" id="event-count"></span>
+    </div>
+    <div id="events-grid" class="grid grid-cols-1 gap-lg">
+      <!-- Skeleton placeholders -->
+      <div class="skeleton rounded-xl h-64"></div>
+      <div class="skeleton rounded-xl h-64"></div>
+      <div class="skeleton rounded-xl h-48"></div>
+    </div>
+    <div id="no-events" class="hidden text-center py-16 text-on-surface-variant">
+      <span class="material-symbols-outlined text-5xl mb-4 block">sentiment_dissatisfied</span>
+      <p class="text-body-lg font-semibold">No events found</p>
+      <p class="text-body-md mt-1">Try a different search or category</p>
+    </div>
+    <div id="load-more-wrap" class="hidden text-center mt-6">
+      <button onclick="loadMore()" class="px-lg py-sm bg-primary/10 text-primary rounded-full text-label-caps font-semibold hover:bg-primary/20 transition-colors">
+        LOAD MORE
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/90 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)] border-t border-outline-variant/20">
+  <div class="flex flex-col items-center bg-primary/10 text-primary rounded-xl px-4 py-2">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">explore</span>
+    <span class="text-label-caps mt-xs">Discover</span>
+  </div>
+  <a href="tickets.html" class="flex flex-col items-center text-on-surface-variant px-4 py-2 hover:text-primary transition-colors">
+    <span class="material-symbols-outlined">local_activity</span>
+    <span class="text-label-caps mt-xs">My Tickets</span>
+  </a>
+  <a href="login.html" id="nav-login" class="flex flex-col items-center text-on-surface-variant px-4 py-2 hover:text-primary transition-colors">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-caps mt-xs">Sign In</span>
+  </a>
+</nav>
+
+<script src="api.js"></script>
+<script>
+const PLACEHOLDER = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBG0kETVkyKmuooroSqWkqUKcaDZjoUS446cKpcRrRBQoMUtbw8EgGnXqVe8fTqIWuGOHGJQlyx6Y1yoMQ0kM3GNKRnsoU4gQqMVfEswZ7Cp2tyrV2eyiVdN0b3MkbP9p7T7STCiMh_PqsWcYYK0Q55EXcRAtKXe3Rn2-kjEI8unDAKB7ui5SCRNch9rIOJ-6ug1jlhYkMk3mZ9NsRQ3ZdzjOIncfg4JBH1NRg7OMERIGdPX3UljTD8DDXr8otuRPzv6F-6ImKBYo';
+let currentCat = '', currentSearch = '', nextUrl = null, searchTimer = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  updateNav();
+  loadEvents();
+});
+
+function updateNav() {
+  const user = getUser();
+  if (user) {
+    document.getElementById('nav-login').href = 'tickets.html';
+    document.getElementById('nav-login').querySelector('span.material-symbols-outlined').textContent = 'local_activity';
+    document.getElementById('nav-login').querySelector('.text-label-caps').textContent = 'My Tickets';
+    document.getElementById('user-info').classList.remove('hidden');
+    document.getElementById('menu-username').textContent = user.username;
+    document.getElementById('menu-role').textContent = user.role === 'organizer' ? '🎪 Event Organizer' : '👤 Regular User';
+    document.getElementById('logout-btn').classList.remove('hidden');
+    document.getElementById('login-link').classList.add('hidden');
+    if (user.role === 'organizer') {
+      document.getElementById('scanner-link').classList.remove('hidden');
+      document.getElementById('organizer-link').classList.remove('hidden');
+    }
+    document.getElementById('auth-icon').textContent = 'person';
+  }
+}
+
+function toggleMenu() {
+  document.getElementById('menu-overlay').classList.toggle('hidden');
+  document.getElementById('side-menu').classList.toggle('hidden');
+}
+function handleAuthBtn() { window.location.href = isLoggedIn() ? 'tickets.html' : 'login.html'; }
+function handleLogout() { logout(); }
+
+// ── Events ────────────────────────────────────────────────────────────────
+async function loadEvents(append = false) {
+  if (!append) {
+    document.getElementById('events-grid').innerHTML = `<div class="skeleton rounded-xl h-64"></div><div class="skeleton rounded-xl h-64"></div>`;
+    document.getElementById('no-events').classList.add('hidden');
+  }
+  try {
+    const params = {};
+    if (currentCat) params.category = currentCat;
+    if (currentSearch) params.search = currentSearch;
+    const data = await fetchEvents(params);
+    const events = data.results || [];
+    nextUrl = data.next;
+    document.getElementById('load-more-wrap').classList.toggle('hidden', !nextUrl);
+    document.getElementById('event-count').textContent = data.count ? `${data.count} events` : '';
+
+    if (!events.length) {
+      document.getElementById('events-grid').innerHTML = '';
+      document.getElementById('no-events').classList.remove('hidden');
+      return;
+    }
+    const html = events.map(renderCard).join('');
+    if (append) document.getElementById('events-grid').insertAdjacentHTML('beforeend', html);
+    else document.getElementById('events-grid').innerHTML = html;
+  } catch(e) {
+    document.getElementById('events-grid').innerHTML = `<p class="text-error text-center py-8">Failed to load events. Is the backend running?</p>`;
+  }
+}
+
+function renderCard(ev) {
+  const emoji = CATEGORY_EMOJI[ev.category] || '🎉';
+  const img = ev.image || PLACEHOLDER;
+  const sold = ev.tickets_remaining === 0;
+  return `
+  <div class="event-card bg-surface-container-lowest rounded-xl overflow-hidden border border-surface-variant cursor-pointer" onclick="window.location.href='event.html?id=${ev.id}'">
+    <div class="aspect-[16/9] relative overflow-hidden">
+      <img src="${img}" alt="${ev.title}" class="w-full h-full object-cover" onerror="this.src='${PLACEHOLDER}'"/>
+      <div class="absolute top-sm right-sm bg-white/90 backdrop-blur px-md py-xs rounded-full text-label-caps font-bold text-primary shadow-sm">
+        ${fmtPrice(ev.price)}
+      </div>
+      <div class="absolute top-sm left-sm bg-primary/90 text-white px-sm py-xs rounded-full text-[10px] font-bold uppercase">
+        ${emoji} ${ev.category_display}
+      </div>
+      ${sold ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><span class="bg-red-600 text-white px-md py-sm rounded-full font-bold text-label-caps">SOLD OUT</span></div>' : ''}
+    </div>
+    <div class="p-md">
+      <div class="flex items-center text-outline mb-xs gap-1">
+        <span class="material-symbols-outlined text-sm">calendar_month</span>
+        <span class="text-[11px] text-label-caps tracking-wider">${fmtDate(ev.date)}</span>
+      </div>
+      <h4 class="text-headline-md font-bold text-on-surface mb-sm leading-tight">${ev.title}</h4>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1 text-secondary text-sm">
+          <span class="material-symbols-outlined text-sm">location_on</span>
+          <span class="truncate max-w-[140px]">${ev.venue_name}</span>
+        </div>
+        <span class="text-label-caps text-on-surface-variant">${ev.tickets_remaining} left</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadMore() {
+  if (!nextUrl) return;
+  try {
+    const res = await fetch(nextUrl, { headers: { Authorization: `Bearer ${getToken()}` } });
+    const data = await res.json();
+    nextUrl = data.next;
+    document.getElementById('load-more-wrap').classList.toggle('hidden', !nextUrl);
+    document.getElementById('events-grid').insertAdjacentHTML('beforeend', (data.results || []).map(renderCard).join(''));
+  } catch {}
+}
+
+function filterCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  document.getElementById('section-title').textContent = cat ? (CATEGORY_EMOJI[cat] + ' ' + cat.charAt(0).toUpperCase() + cat.slice(1)) : 'Trending Now';
+  loadEvents();
+}
+
+function debounceSearch(val) {
+  currentSearch = val;
+  document.getElementById('search-clear').classList.toggle('hidden', !val);
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadEvents(), 450);
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  currentSearch = '';
+  document.getElementById('search-clear').classList.add('hidden');
+  loadEvents();
+}
+</script>
+</body></html>

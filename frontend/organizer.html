@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Organizer Dashboard — VIBE CHECK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{primary:"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff","surface":"#fef7ff","surface-container-low":"#f9f1ff","surface-container":"#f3ebfa","surface-container-high":"#ede5f4","on-surface":"#1d1a24","on-surface-variant":"#4a4455","outline":"#7b7487","outline-variant":"#ccc3d8","background":"#fef7ff"},spacing:{xs:"4px",sm:"8px",md:"16px",lg:"24px",xl:"48px","margin-mobile":"20px",gutter:"16px"},borderRadius:{DEFAULT:"1rem",lg:"2rem",full:"9999px"},fontSize:{"label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}],"headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],"headline-lg":["32px",{lineHeight:"1.2",fontWeight:"700"}],"body-md":["16px",{lineHeight:"1.5"}],"display-xl":["48px",{lineHeight:"1.1",fontWeight:"800"}]}}}}
+</script>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+body{font-family:'Inter',sans-serif;background:#fef7ff}
+.status-live{background:#dcfce7;color:#15803d}
+.status-draft{background:#f3f4f6;color:#6b7280}
+.status-past{background:#fef3c7;color:#b45309}
+.status-sold_out{background:#fee2e2;color:#dc2626}
+.skeleton{background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.modal-backdrop{background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;padding:10px 14px;border:1px solid #ccc3d8;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;background:#fff;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{border-color:#630ed4;box-shadow:0 0 0 3px rgba(99,14,212,.12)}
+label{display:block;font-size:12px;font-weight:600;color:#4a4455;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+</style>
+</head>
+<body class="pb-10">
+
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-outline-variant/20 flex items-center justify-between px-margin-mobile h-16">
+  <div class="flex items-center gap-3">
+    <a href="index.html" class="text-primary"><span class="material-symbols-outlined">arrow_back</span></a>
+    <h1 class="font-extrabold tracking-tighter text-primary text-xl">ORGANIZER DASHBOARD</h1>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-sm text-on-surface-variant" id="hdr-username"></span>
+    <button onclick="openModal()" class="flex items-center gap-1 bg-primary text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg shadow-primary/20 active:scale-95 transition-transform">
+      <span class="material-symbols-outlined text-sm">add</span> NEW EVENT
+    </button>
+  </div>
+</header>
+
+<!-- Auth wall -->
+<div id="auth-wall" class="hidden flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+  <span class="material-symbols-outlined text-6xl text-primary mb-4">lock</span>
+  <h2 class="text-headline-md font-bold mb-2">Organizer Access Only</h2>
+  <p class="text-on-surface-variant mb-6">You need an organizer account to access this dashboard.</p>
+  <a href="login.html" class="bg-primary text-white px-8 py-3 rounded-full font-bold">Sign In</a>
+</div>
+
+<main id="main" class="hidden max-w-5xl mx-auto px-margin-mobile py-lg">
+
+  <!-- Stats row -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-md mb-xl" id="stats-row">
+    <div class="skeleton rounded-xl h-24"></div>
+    <div class="skeleton rounded-xl h-24"></div>
+    <div class="skeleton rounded-xl h-24"></div>
+    <div class="skeleton rounded-xl h-24"></div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="flex items-center justify-between mb-lg flex-wrap gap-sm">
+    <h2 class="text-headline-md font-bold text-on-surface">My Events</h2>
+    <div class="flex gap-sm flex-wrap">
+      <select id="filter-status" onchange="applyFilter()" class="text-sm rounded-full px-3 py-2 border border-outline-variant text-on-surface-variant" style="width:auto">
+        <option value="">All Status</option>
+        <option value="live">Live</option>
+        <option value="draft">Draft</option>
+        <option value="sold_out">Sold Out</option>
+        <option value="past">Past</option>
+      </select>
+      <select id="filter-order" onchange="applyFilter()" class="text-sm rounded-full px-3 py-2 border border-outline-variant text-on-surface-variant" style="width:auto">
+        <option value="-created_at">Newest</option>
+        <option value="date">Date ↑</option>
+        <option value="-date">Date ↓</option>
+        <option value="price">Price ↑</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Events table -->
+  <div id="events-container">
+    <div class="skeleton rounded-xl h-20 mb-3"></div>
+    <div class="skeleton rounded-xl h-20 mb-3"></div>
+    <div class="skeleton rounded-xl h-20"></div>
+  </div>
+
+  <div id="empty-state" class="hidden text-center py-20">
+    <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block">event_busy</span>
+    <h3 class="text-headline-md font-bold mb-2">No events yet</h3>
+    <p class="text-on-surface-variant mb-6">Create your first event to get started.</p>
+    <button onclick="openModal()" class="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/20">CREATE EVENT</button>
+  </div>
+</main>
+
+<!-- ── Create/Edit Modal ── -->
+<div id="event-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" onclick="handleModalBackdrop(event)">
+  <div class="bg-surface w-full max-w-lg rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant/30 sticky top-0 bg-surface z-10">
+      <h3 class="font-bold text-headline-md" id="modal-title">Create Event</h3>
+      <button onclick="closeModal()" class="text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="event-form" class="p-lg space-y-md" onsubmit="handleSubmit(event)">
+      <div id="form-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm"></div>
+
+      <div>
+        <label>Event Title *</label>
+        <input type="text" id="f-title" placeholder="e.g. Tech Meetup Mumbai" required/>
+      </div>
+      <div>
+        <label>Description *</label>
+        <textarea id="f-desc" rows="3" placeholder="Tell attendees what to expect…" required style="width:100%;padding:10px 14px;border:1px solid #ccc3d8;border-radius:10px;font-family:Inter,sans-serif;font-size:14px;resize:vertical"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-md">
+        <div>
+          <label>Category *</label>
+          <select id="f-category" required>
+            <option value="">Select…</option>
+            <option value="music">🎵 Music</option>
+            <option value="tech">💻 Tech</option>
+            <option value="food">🍜 Food</option>
+            <option value="arts">🎨 Arts</option>
+          </select>
+        </div>
+        <div>
+          <label>Date & Time *</label>
+          <input type="datetime-local" id="f-date" required/>
+        </div>
+      </div>
+      <div>
+        <label>Venue Name *</label>
+        <input type="text" id="f-venue" placeholder="e.g. Bandra Kurla Complex" required/>
+      </div>
+      <div class="grid grid-cols-2 gap-md">
+        <div>
+          <label>Price (₹) *</label>
+          <input type="number" id="f-price" min="0" step="1" placeholder="0 for free" required/>
+        </div>
+        <div>
+          <label>Total Tickets *</label>
+          <input type="number" id="f-tickets" min="1" step="1" placeholder="100" required/>
+        </div>
+      </div>
+      <div>
+        <label>Banner Image</label>
+        <input type="file" id="f-image" accept="image/*" style="width:100%;padding:8px;border:1px solid #ccc3d8;border-radius:10px;font-size:14px"/>
+        <p class="text-xs text-on-surface-variant mt-1">Optional. JPG/PNG recommended.</p>
+        <img id="f-image-preview" class="hidden mt-2 w-full h-32 object-cover rounded-xl border border-outline-variant"/>
+      </div>
+      <div class="flex items-center gap-sm">
+        <input type="checkbox" id="f-published" class="w-4 h-4 accent-primary"/>
+        <label for="f-published" style="text-transform:none;letter-spacing:0;font-size:14px;margin:0;cursor:pointer">Publish immediately (visible to public)</label>
+      </div>
+      <div class="flex gap-sm pt-sm">
+        <button type="button" onclick="closeModal()" class="flex-1 border-2 border-primary text-primary py-3 rounded-full font-bold active:scale-95 transition-all">Cancel</button>
+        <button type="submit" id="submit-btn" class="flex-1 bg-primary text-white py-3 rounded-full font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all">Create Event</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Delete Confirm Modal ── -->
+<div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+  <div class="bg-surface w-full max-w-sm rounded-lg shadow-2xl p-lg text-center">
+    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-md">
+      <span class="material-symbols-outlined text-red-600 text-4xl">delete</span>
+    </div>
+    <h3 class="font-bold text-headline-md mb-sm">Delete Event?</h3>
+    <p class="text-on-surface-variant text-sm mb-lg" id="delete-msg">This action cannot be undone.</p>
+    <div class="flex gap-sm">
+      <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="flex-1 border-2 border-outline text-on-surface-variant py-3 rounded-full font-bold">Cancel</button>
+      <button onclick="confirmDelete()" id="delete-confirm-btn" class="flex-1 bg-red-600 text-white py-3 rounded-full font-bold active:scale-95 transition-all">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+const PLACEHOLDER = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBG0kETVkyKmuooroSqWkqUKcaDZjoUS446cKpcRrRBQoMUtbw8EgGnXqVe8fTqIWuGOHGJQlyx6Y1yoMQ0kM3GNKRnsoU4gQqMVfEswZ7Cp2tyrV2eyiVdN0b3MkbP9p7T7STCiMh_PqsWcYYK0Q55EXcRAtKXe3Rn2-kjEI8unDAKB7ui5SCRNch9rIOJ-6ug1jlhYkMk3mZ9NsRQ3ZdzjOIncfg4JBH1NRg7OMERIGdPX3UljTD8DDXr8otuRPzv6F-6ImKBYo';
+
+let allEvents   = [];
+let editingId   = null;
+let deletingId  = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  if (!isLoggedIn()) {
+    document.getElementById('auth-wall').classList.remove('hidden');
+    return;
+  }
+  const user = getUser();
+  if (!user || user.role !== 'organizer') {
+    document.getElementById('auth-wall').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('hdr-username').textContent = user.username;
+  document.getElementById('main').classList.remove('hidden');
+  await loadEvents();
+});
+
+// ── Load Events ───────────────────────────────────────────────────────────
+async function loadEvents() {
+  try {
+    const data = await fetchOrganizerEvents({ ordering: '-created_at' });
+    allEvents = data.results || data;
+    renderStats(allEvents);
+    renderEvents(allEvents);
+  } catch(e) {
+    document.getElementById('events-container').innerHTML =
+      '<p class="text-red-600 text-center py-8">Failed to load events. Is the backend running?</p>';
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+function renderStats(events) {
+  const totalRevenue  = events.reduce((s, e) => s + parseFloat(e.revenue || 0), 0);
+  const totalTickets  = events.reduce((s, e) => s + (e.tickets_sold || 0), 0);
+  const totalScanned  = events.reduce((s, e) => s + (e.scanned_count || 0), 0);
+  const liveCount     = events.filter(e => e.status_label === 'live').length;
+
+  document.getElementById('stats-row').innerHTML = `
+    ${statBox('₹' + totalRevenue.toFixed(0), 'Total Revenue', 'payments', 'text-primary')}
+    ${statBox(events.length, 'Total Events', 'event', 'text-purple-600')}
+    ${statBox(totalTickets, 'Tickets Sold', 'confirmation_number', 'text-green-600')}
+    ${statBox(liveCount, 'Live Events', 'bolt', 'text-orange-500')}
+  `;
+}
+
+function statBox(val, label, icon, cls) {
+  return `
+  <div class="bg-surface-container-low rounded-xl p-md border border-outline-variant/30 flex items-center gap-md">
+    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+      <span class="material-symbols-outlined ${cls}">${icon}</span>
+    </div>
+    <div>
+      <p class="font-bold text-headline-md leading-none ${cls}">${val}</p>
+      <p class="text-label-caps text-on-surface-variant mt-1">${label}</p>
+    </div>
+  </div>`;
+}
+
+// ── Filter / render ───────────────────────────────────────────────────────
+function applyFilter() {
+  const statusF = document.getElementById('filter-status').value;
+  const orderF  = document.getElementById('filter-order').value;
+  let list = [...allEvents];
+  if (statusF) list = list.filter(e => e.status_label === statusF);
+  list.sort((a, b) => {
+    if (orderF === 'date')       return new Date(a.date) - new Date(b.date);
+    if (orderF === '-date')      return new Date(b.date) - new Date(a.date);
+    if (orderF === 'price')      return parseFloat(a.price) - parseFloat(b.price);
+    if (orderF === '-created_at') return new Date(b.created_at) - new Date(a.created_at);
+    return 0;
+  });
+  renderEvents(list);
+}
+
+function renderEvents(events) {
+  const container = document.getElementById('events-container');
+  const empty     = document.getElementById('empty-state');
+  if (!events.length) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = events.map(renderRow).join('');
+}
+
+const STATUS_CFG = {
+  live:     { cls: 'status-live',     label: '● LIVE' },
+  draft:    { cls: 'status-draft',    label: '○ DRAFT' },
+  past:     { cls: 'status-past',     label: '◷ PAST' },
+  sold_out: { cls: 'status-sold_out', label: '✕ SOLD OUT' },
+};
+
+function renderRow(ev) {
+  const cfg   = STATUS_CFG[ev.status_label] || STATUS_CFG.draft;
+  const img   = ev.image || PLACEHOLDER;
+  const price = parseFloat(ev.price) === 0 ? 'FREE' : '₹' + parseFloat(ev.price).toFixed(0);
+  const pct   = ev.total_tickets > 0
+    ? Math.round((ev.tickets_sold / ev.total_tickets) * 100) : 0;
+
+  return `
+  <div class="bg-white rounded-xl border border-outline-variant/30 shadow-sm mb-3 overflow-hidden hover:shadow-md transition-shadow">
+    <div class="flex gap-md p-md items-start">
+      <img src="${img}" alt="${ev.title}" class="w-20 h-20 rounded-xl object-cover flex-shrink-0" onerror="this.src='${PLACEHOLDER}'"/>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-sm mb-1 flex-wrap">
+          <h4 class="font-bold text-on-surface truncate">${ev.title}</h4>
+          <span class="text-label-caps px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.cls}">${cfg.label}</span>
+        </div>
+        <p class="text-xs text-on-surface-variant mb-2">${fmtDate(ev.date)} · ${ev.venue_name}</p>
+        <!-- Progress bar -->
+        <div class="flex items-center gap-sm mb-2">
+          <div class="flex-1 bg-surface-container-high rounded-full h-1.5">
+            <div class="bg-primary rounded-full h-1.5 transition-all" style="width:${pct}%"></div>
+          </div>
+          <span class="text-xs text-on-surface-variant flex-shrink-0">${ev.tickets_sold}/${ev.total_tickets}</span>
+        </div>
+        <div class="flex items-center gap-lg text-xs text-on-surface-variant flex-wrap">
+          <span>💰 ${price}</span>
+          <span>🎟 ${ev.tickets_sold} sold</span>
+          <span>📥 ₹${parseFloat(ev.revenue || 0).toFixed(0)} revenue</span>
+          <span>✅ ${ev.scanned_count} scanned</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex border-t border-outline-variant/20">
+      <a href="event.html?id=${ev.id}" class="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-sm">visibility</span> View
+      </a>
+      <button onclick="openEditModal(${ev.id})" class="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-semibold text-primary hover:bg-surface-container transition-colors border-l border-outline-variant/20">
+        <span class="material-symbols-outlined text-sm">edit</span> Edit
+      </button>
+      <button onclick="openDeleteModal(${ev.id}, '${ev.title.replace(/'/g,"\\'")}', ${ev.tickets_sold})"
+        class="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors border-l border-outline-variant/20">
+        <span class="material-symbols-outlined text-sm">delete</span> Delete
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── Modal open/close ──────────────────────────────────────────────────────
+function openModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent   = 'Create New Event';
+  document.getElementById('submit-btn').textContent    = 'Create Event';
+  document.getElementById('event-form').reset();
+  document.getElementById('f-image-preview').classList.add('hidden');
+  document.getElementById('form-error').classList.add('hidden');
+  document.getElementById('event-modal').classList.remove('hidden');
+}
+
+function openEditModal(id) {
+  const ev = allEvents.find(e => e.id === id);
+  if (!ev) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent   = 'Edit Event';
+  document.getElementById('submit-btn').textContent    = 'Save Changes';
+  document.getElementById('form-error').classList.add('hidden');
+
+  // Fill form
+  document.getElementById('f-title').value     = ev.title;
+  document.getElementById('f-desc').value      = ev.description;
+  document.getElementById('f-category').value  = ev.category;
+  // Convert ISO to datetime-local format (slice off seconds+ms+Z)
+  document.getElementById('f-date').value      = ev.date ? ev.date.slice(0, 16) : '';
+  document.getElementById('f-venue').value     = ev.venue_name;
+  document.getElementById('f-price').value     = ev.price;
+  document.getElementById('f-tickets').value   = ev.total_tickets;
+  document.getElementById('f-published').checked = ev.is_published;
+
+  if (ev.image) {
+    const prev = document.getElementById('f-image-preview');
+    prev.src = ev.image;
+    prev.classList.remove('hidden');
+  } else {
+    document.getElementById('f-image-preview').classList.add('hidden');
+  }
+  document.getElementById('event-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('event-modal').classList.add('hidden');
+  editingId = null;
+}
+
+function handleModalBackdrop(e) {
+  if (e.target === document.getElementById('event-modal')) closeModal();
+}
+
+// ── Image preview ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-image').addEventListener('change', function() {
+    const file = this.files[0];
+    const prev = document.getElementById('f-image-preview');
+    if (file) {
+      prev.src = URL.createObjectURL(file);
+      prev.classList.remove('hidden');
+    } else {
+      prev.classList.add('hidden');
+    }
+  });
+});
+
+// ── Form submit ───────────────────────────────────────────────────────────
+async function handleSubmit(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('submit-btn');
+  const errEl = document.getElementById('form-error');
+  errEl.classList.add('hidden');
+
+  // Build FormData (supports image upload)
+  const fd = new FormData();
+  fd.append('title',        document.getElementById('f-title').value.trim());
+  fd.append('description',  document.getElementById('f-desc').value.trim());
+  fd.append('category',     document.getElementById('f-category').value);
+  fd.append('date',         new Date(document.getElementById('f-date').value).toISOString());
+  fd.append('venue_name',   document.getElementById('f-venue').value.trim());
+  fd.append('price',        document.getElementById('f-price').value);
+  fd.append('total_tickets',document.getElementById('f-tickets').value);
+  fd.append('is_published', document.getElementById('f-published').checked ? 'true' : 'false');
+
+  const imgFile = document.getElementById('f-image').files[0];
+  if (imgFile) fd.append('image', imgFile);
+
+  btn.disabled = true;
+  btn.textContent = editingId ? 'Saving…' : 'Creating…';
+
+  try {
+    if (editingId) {
+      await updateEvent(editingId, fd);
+    } else {
+      await createEvent(fd);
+    }
+    closeModal();
+    await loadEvents();
+  } catch(err) {
+    const msgs = Object.entries(err)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+      .join(' | ');
+    errEl.textContent = msgs || 'Something went wrong.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editingId ? 'Save Changes' : 'Create Event';
+  }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+function openDeleteModal(id, title, ticketsSold) {
+  deletingId = id;
+  document.getElementById('delete-msg').innerHTML =
+    `<strong>${title}</strong> will be permanently deleted.` +
+    (ticketsSold > 0
+      ? `<br><span class="text-red-600 font-semibold">⚠️ ${ticketsSold} tickets already sold!</span>`
+      : '');
+  document.getElementById('delete-modal').classList.remove('hidden');
+}
+
+async function confirmDelete() {
+  if (!deletingId) return;
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.textContent = 'Deleting…'; btn.disabled = true;
+  try {
+    await deleteEvent(deletingId);
+    document.getElementById('delete-modal').classList.add('hidden');
+    await loadEvents();
+  } catch(e) {
+    alert('Delete failed: ' + (e.detail || JSON.stringify(e)));
+  } finally {
+    btn.textContent = 'Delete'; btn.disabled = false;
+    deletingId = null;
+  }
+}
+</script>
+</body>
+</html>

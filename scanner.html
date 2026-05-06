@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Scanner — Event Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0a0f;
+      --surface:    #12121a;
+      --surface2:   #1a1a26;
+      --border:     #2a2a3d;
+      --accent:     #7c3aed;
+      --accent-glow:#7c3aed44;
+      --green:      #10b981;
+      --green-glow: #10b98133;
+      --red:        #ef4444;
+      --red-glow:   #ef444433;
+      --amber:      #f59e0b;
+      --text:       #f1f5f9;
+      --muted:      #94a3b8;
+      --radius:     16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    header {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p  { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Card ────────────────────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: 0 8px 40px #0006;
+    }
+    .card + .card { margin-top: 20px; }
+
+    /* ── Login Form ──────────────────────────────────── */
+    #login-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    input[type=text], input[type=password] {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 16px;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-danger {
+      background: #1a0a0a;
+      border: 1px solid var(--red);
+      color: var(--red);
+      margin-top: 10px;
+    }
+    .btn-danger:hover { background: #2a1010; }
+
+    .error-msg {
+      background: #1f0f0f;
+      border: 1px solid var(--red);
+      color: var(--red);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      margin-top: 14px;
+      display: none;
+    }
+
+    /* ── Scanner Card ────────────────────────────────── */
+    #scanner-card { display: none; }
+    #scanner-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+    #scanner-card .subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    #qr-reader {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+    }
+    /* Override html5-qrcode default styles */
+    #qr-reader video { border-radius: 10px; }
+    #qr-reader__scan_region { background: transparent !important; }
+    #qr-reader__dashboard { display: none !important; }
+
+    /* ── Viewfinder overlay ──────────────────────────── */
+    .scanner-wrapper {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .scanner-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scan-frame {
+      width: 200px; height: 200px;
+      position: relative;
+    }
+    .scan-frame::before,
+    .scan-frame::after,
+    .scan-frame span::before,
+    .scan-frame span::after {
+      content: '';
+      position: absolute;
+      width: 28px; height: 28px;
+      border-color: var(--accent);
+      border-style: solid;
+    }
+    .scan-frame::before  { top: 0;    left: 0;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .scan-frame::after   { top: 0;    right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .scan-frame span::before { bottom: 0; left: 0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .scan-frame span::after  { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+    /* Scanning beam */
+    @keyframes scan-beam {
+      0%   { top: 12%; opacity: 1; }
+      45%  { opacity: 1; }
+      50%  { top: 88%; opacity: 0.3; }
+      51%  { top: 12%; opacity: 0.3; }
+      55%  { opacity: 1; }
+      100% { top: 12%; }
+    }
+    .scan-beam {
+      position: absolute;
+      left: 8px; right: 8px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      top: 12%;
+      animation: scan-beam 2.4s ease-in-out infinite;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* ── Result Alert ────────────────────────────────── */
+    #result-alert {
+      margin-top: 20px;
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+      animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pop-in {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    #result-alert.granted {
+      background: #061a12;
+      border: 1.5px solid var(--green);
+      box-shadow: 0 0 30px var(--green-glow);
+    }
+    #result-alert.scanned {
+      background: #1a0606;
+      border: 1.5px solid var(--red);
+      box-shadow: 0 0 30px var(--red-glow);
+    }
+    .result-icon {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .result-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .result-title.granted { color: var(--green); }
+    .result-title.scanned { color: var(--red);   }
+    .result-detail {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .result-field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .result-field span:first-child { color: var(--muted); }
+    .result-field span:last-child  { font-weight: 600; }
+
+    /* ── Status bar ──────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* ── Session info ────────────────────────────────── */
+    .session-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .session-pill strong { color: var(--text); }
+
+    /* ── Scan counter ────────────────────────────────── */
+    .counter-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .counter-box {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .counter-box .num {
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .counter-box .lbl { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .counter-box.green .num { color: var(--green); }
+    .counter-box.red   .num { color: var(--red);   }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-icon">🎟️</div>
+    <div>
+      <h1>Ticket Scanner</h1>
+      <p>Event Platform — Organizer Tool</p>
+    </div>
+  </header>
+
+  <!-- ── LOGIN CARD ── -->
+  <div class="card" id="login-card">
+    <h2>🔐 Organizer Login</h2>
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="your_username" autocomplete="username" />
+
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+
+    <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Sign In &amp; Start Scanning</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+
+  <!-- ── SCANNER CARD ── -->
+  <div class="card" id="scanner-card">
+
+    <div class="session-pill" id="session-pill">
+      <span>👤</span>
+      <span>Logged in as <strong id="session-username">—</strong></span>
+    </div>
+
+    <h2>📷 Scan QR Code</h2>
+    <p class="subtitle">Point the camera at a ticket QR code to verify entry.</p>
+
+    <!-- Scan counters -->
+    <div class="counter-row">
+      <div class="counter-box green">
+        <div class="num" id="cnt-granted">0</div>
+        <div class="lbl">Access Granted</div>
+      </div>
+      <div class="counter-box red">
+        <div class="num" id="cnt-scanned">0</div>
+        <div class="lbl">Already Scanned</div>
+      </div>
+    </div>
+
+    <!-- Camera viewport -->
+    <div class="scanner-wrapper">
+      <div id="qr-reader"></div>
+      <div class="scanner-overlay">
+        <div class="scan-frame">
+          <span></span>
+          <div class="scan-beam"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live status -->
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span id="status-text">Camera active — scanning for QR code…</span>
+    </div>
+
+    <!-- Result alert -->
+    <div id="result-alert">
+      <span class="result-icon" id="result-icon"></span>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-detail" id="result-detail"></div>
+      <div class="result-field" id="result-field-event" style="display:none">
+        <span>Event</span><span id="rf-event"></span>
+      </div>
+      <div class="result-field" id="result-field-user" style="display:none">
+        <span>Ticket holder</span><span id="rf-user"></span>
+      </div>
+      <div class="result-field" id="result-field-price" style="display:none">
+        <span>Paid</span><span id="rf-price"></span>
+      </div>
+    </div>
+
+    <button class="btn btn-danger" onclick="doLogout()">🚪 Logout</button>
+  </div>
+
+  <script>
+    // ─── Config ────────────────────────────────────────────────────────────────
+    const API_BASE = 'http://127.0.0.1:8000/api';
+
+    // ─── State ─────────────────────────────────────────────────────────────────
+    let accessToken   = localStorage.getItem('scanner_token') || null;
+    let scannerUsername = localStorage.getItem('scanner_username') || null;
+    let html5QrCode   = null;
+    let isProcessing  = false;   // debounce: ignore scans while awaiting API
+    let cntGranted    = 0;
+    let cntScanned    = 0;
+
+    // ─── Init ──────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      if (accessToken) showScanner();
+    });
+
+    // ─── Login ─────────────────────────────────────────────────────────────────
+    async function doLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl    = document.getElementById('login-error');
+      const btn      = document.getElementById('login-btn');
+
+      errEl.style.display = 'none';
+      btn.textContent = 'Signing in…';
+      btn.style.opacity = '0.7';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/token/`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || 'Invalid credentials.');
+        }
+
+        const data = await res.json();
+        accessToken = data.access;
+        scannerUsername = username;
+        localStorage.setItem('scanner_token', accessToken);
+        localStorage.setItem('scanner_username', scannerUsername);
+        showScanner();
+
+      } catch (err) {
+        errEl.textContent = '❌ ' + err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.textContent = 'Sign In & Start Scanning';
+        btn.style.opacity = '1';
+      }
+    }
+
+    // ─── Show Scanner UI ───────────────────────────────────────────────────────
+    function showScanner() {
+      document.getElementById('login-card').style.display  = 'none';
+      document.getElementById('scanner-card').style.display = 'block';
+      document.getElementById('session-username').textContent = scannerUsername || '—';
+      startCamera();
+    }
+
+    // ─── Start Camera ──────────────────────────────────────────────────────────
+    function startCamera() {
+      html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+        onScanSuccess,
+        () => {}   // suppress per-frame errors
+      ).catch(err => {
+        document.getElementById('status-text').textContent =
+          '⚠️ Camera error: ' + err;
+      });
+    }
+
+    // ─── QR Scan callback ──────────────────────────────────────────────────────
+    async function onScanSuccess(decodedText) {
+      if (isProcessing) return;
+      isProcessing = true;
+      document.getElementById('status-text').textContent = '⏳ Verifying ticket…';
+      hideResult();
+
+      try {
+        const res = await fetch(`${API_BASE}/tickets/verify/`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ ticket_hash: decodedText }),
+        });
+
+        const data = await res.json();
+
+        if (res.status === 200 && data.status === 'access_granted') {
+          showGranted(data.ticket);
+          cntGranted++;
+          document.getElementById('cnt-granted').textContent = cntGranted;
+
+        } else if (res.status === 409 && data.status === 'already_scanned') {
+          showAlreadyScanned(data);
+          cntScanned++;
+          document.getElementById('cnt-scanned').textContent = cntScanned;
+
+        } else if (res.status === 401) {
+          // Token expired — log out
+          doLogout();
+
+        } else if (res.status === 404) {
+          showError('❓ Unknown ticket', 'This QR code was not found in our system.');
+
+        } else {
+          showError('⚠️ Error', data.detail || 'Something went wrong. Please try again.');
+        }
+
+      } catch (err) {
+        showError('🌐 Network Error', 'Could not reach the server. Check your connection.');
+      }
+
+      // Re-enable scanning after 3 seconds
+      setTimeout(() => {
+        isProcessing = false;
+        hideResult();
+        document.getElementById('status-text').textContent = 'Camera active — scanning for QR code…';
+      }, 3500);
+    }
+
+    // ─── Result displays ───────────────────────────────────────────────────────
+    function showGranted(ticket) {
+      const el = document.getElementById('result-alert');
+      el.className = 'granted';
+      el.style.display = 'block';
+
+      document.getElementById('result-icon').textContent = '✅';
+      const title = document.getElementById('result-title');
+      title.textContent = 'Access Granted';
+      title.className = 'result-title granted';
+      document.getElementById('result-detail').textContent = 'Ticket is valid. Welcome!';
+
+      setField('result-field-event', 'rf-event',  ticket.event?.title    || '—');
+      setField('result-field-user',  'rf-user',   ticket.event?.organizer?.username || '—');
+      setField('result-field-price', 'rf-price',  ticket.price_paid ? `₹${ticket.price_paid}` : '—');
+
+      document.getElementById('status-text').textContent = '✅ Access granted!';
+    }
+
+    function showAlreadyScanned(data) {
+      const el = document.getElementById('result-alert');
+      el.className = 'scanned';
+      el.style.display = 'block';
+
+      document.getElementById('result-icon').textContent = '🚫';
+      const title = document.getElementById('result-title');
+      title.textContent = 'Already Scanned';
+      title.className = 'result-title scanned';
+      document.getElementById('result-detail').textContent = data.detail || 'This ticket has already been used.';
+
+      setField('result-field-event', 'rf-event', data.event || '—');
+      setField('result-field-user',  'rf-user',  data.user  || '—');
+      document.getElementById('result-field-price').style.display = 'none';
+
+      document.getElementById('status-text').textContent = '🚫 Ticket already used.';
+    }
+
+    function showError(title, detail) {
+      const el = document.getElementById('result-alert');
+      el.className = 'scanned';
+      el.style.display = 'block';
+
+      document.getElementById('result-icon').textContent = '⚠️';
+      const titleEl = document.getElementById('result-title');
+      titleEl.textContent = title;
+      titleEl.className = 'result-title scanned';
+      document.getElementById('result-detail').textContent = detail;
+
+      document.getElementById('result-field-event').style.display = 'none';
+      document.getElementById('result-field-user').style.display  = 'none';
+      document.getElementById('result-field-price').style.display = 'none';
+
+      document.getElementById('status-text').textContent = '⚠️ Scan error.';
+    }
+
+    function setField(rowId, valueId, value) {
+      document.getElementById(rowId).style.display  = 'flex';
+      document.getElementById(valueId).textContent  = value;
+    }
+
+    function hideResult() {
+      const el = document.getElementById('result-alert');
+      el.style.display = 'none';
+      el.className = '';
+      document.getElementById('result-field-event').style.display = 'none';
+      document.getElementById('result-field-user').style.display  = 'none';
+      document.getElementById('result-field-price').style.display = 'none';
+    }
+
+    // ─── Logout ────────────────────────────────────────────────────────────────
+    function doLogout() {
+      if (html5QrCode) {
+        html5QrCode.stop().catch(() => {});
+        html5QrCode = null;
+      }
+      accessToken = null;
+      scannerUsername = null;
+      localStorage.removeItem('scanner_token');
+      localStorage.removeItem('scanner_username');
+      cntGranted = 0; cntScanned = 0;
+
+      document.getElementById('scanner-card').style.display = 'none';
+      document.getElementById('login-card').style.display   = 'block';
+    }
+
+    // Enter key triggers login
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.getElementById('login-card').style.display !== 'none') {
+        doLogin();
+      }
+    });
+  </script>
+</body>
+</html>

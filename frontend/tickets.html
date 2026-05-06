@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Tickets — VIBE CHECK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>tailwind.config={theme:{extend:{colors:{"primary":"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff","on-primary-container":"#ede0ff","surface":"#fef7ff","surface-container-lowest":"#ffffff","surface-container-low":"#f9f1ff","surface-container":"#f3ebfa","surface-container-high":"#ede5f4","on-surface":"#1d1a24","on-surface-variant":"#4a4455","outline":"#7b7487","outline-variant":"#ccc3d8","background":"#fef7ff","secondary":"#00687a","error":"#ba1a1a"},spacing:{"xs":"4px","sm":"8px","md":"16px","lg":"24px","xl":"48px","gutter":"16px","margin-mobile":"20px"},borderRadius:{DEFAULT:"1rem",lg:"2rem",full:"9999px"},fontSize:{"headline-lg":["32px",{lineHeight:"1.2",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],"body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],"body-lg":["18px",{lineHeight:"1.6",fontWeight:"400"}],"label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}]}}}}</script>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+body{font-family:'Inter',sans-serif;background:#fef7ff}
+.glass-card{background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.4)}
+.skeleton{background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.ticket-card{transition:box-shadow .2s}
+.ticket-card:hover{box-shadow:0 8px 32px rgba(124,58,237,.15)}
+.qr-section{display:none}.qr-section.open{display:block}
+</style>
+</head>
+<body class="text-on-surface pb-28">
+
+<header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl flex justify-between items-center px-margin-mobile h-16 border-b border-outline-variant/20">
+  <a href="index.html" class="text-primary"><span class="material-symbols-outlined">arrow_back</span></a>
+  <h1 class="font-extrabold tracking-tighter text-primary text-xl">MY TICKETS</h1>
+  <span class="w-6"></span>
+</header>
+
+<main class="pt-24 px-margin-mobile">
+  <div id="auth-wall" class="hidden text-center py-20">
+    <span class="material-symbols-outlined text-6xl text-primary mb-4 block">lock</span>
+    <h2 class="text-headline-md font-bold mb-2">Sign in to view tickets</h2>
+    <p class="text-on-surface-variant mb-6">Your purchased tickets will appear here.</p>
+    <a href="login.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25">SIGN IN</a>
+  </div>
+
+  <div id="loading-state">
+    <div class="mb-lg"><div class="h-8 skeleton rounded-lg w-40 mb-2"></div><div class="h-4 skeleton rounded-lg w-56"></div></div>
+    <div class="space-y-lg"><div class="skeleton rounded-xl h-52"></div><div class="skeleton rounded-xl h-32"></div><div class="skeleton rounded-xl h-32"></div></div>
+  </div>
+
+  <div id="tickets-view" class="hidden">
+    <div class="mb-lg">
+      <h2 class="text-headline-lg font-bold text-on-surface mb-xs">My Tickets</h2>
+      <p class="text-on-surface-variant" id="ticket-count-label"></p>
+    </div>
+    <div id="tickets-list" class="space-y-lg"></div>
+  </div>
+
+  <div id="empty-state" class="hidden text-center py-20">
+    <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block">confirmation_number</span>
+    <h2 class="text-headline-md font-bold mb-2">No tickets yet</h2>
+    <p class="text-on-surface-variant mb-6">Discover events and grab your spot!</p>
+    <a href="index.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25">DISCOVER EVENTS</a>
+  </div>
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/90 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)] border-t border-outline-variant/20">
+  <a href="index.html" class="flex flex-col items-center text-on-surface-variant px-4 py-2 hover:text-primary transition-colors">
+    <span class="material-symbols-outlined">explore</span>
+    <span class="text-label-caps mt-xs">Discover</span>
+  </a>
+  <div class="flex flex-col items-center bg-primary/10 text-primary rounded-xl px-4 py-2">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">local_activity</span>
+    <span class="text-label-caps mt-xs">My Tickets</span>
+  </div>
+  <a href="login.html" id="nav-profile" class="flex flex-col items-center text-on-surface-variant px-4 py-2 hover:text-primary transition-colors">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-caps mt-xs">Profile</span>
+  </a>
+</nav>
+
+<script src="api.js"></script>
+<script>
+const PLACEHOLDER = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBG0kETVkyKmuooroSqWkqUKcaDZjoUS446cKpcRrRBQoMUtbw8EgGnXqVe8fTqIWuGOHGJQlyx6Y1yoMQ0kM3GNKRnsoU4gQqMVfEswZ7Cp2tyrV2eyiVdN0b3MkbP9p7T7STCiMh_PqsWcYYK0Q55EXcRAtKXe3Rn2-kjEI8unDAKB7ui5SCRNch9rIOJ-6ug1jlhYkMk3mZ9NsRQ3ZdzjOIncfg4JBH1NRg7OMERIGdPX3UljTD8DDXr8otuRPzv6F-6ImKBYo';
+
+window.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('loading-state').classList.remove('hidden');
+
+  if (!isLoggedIn()) {
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('auth-wall').classList.remove('hidden');
+    return;
+  }
+
+  const user = getUser();
+  if (user) {
+    document.getElementById('nav-profile').href = '#';
+    document.getElementById('nav-profile').querySelector('span.material-symbols-outlined').textContent = 'logout';
+    document.getElementById('nav-profile').querySelector('.text-label-caps').textContent = 'Sign Out';
+    document.getElementById('nav-profile').onclick = e => { e.preventDefault(); clearAuth(); window.location.href = 'login.html'; };
+  }
+
+  try {
+    const data = await fetchMyTickets();
+    const tickets = data.results || data;
+    document.getElementById('loading-state').classList.add('hidden');
+
+    if (!tickets.length) {
+      document.getElementById('empty-state').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('ticket-count-label').textContent = `You have ${tickets.length} upcoming experience${tickets.length !== 1 ? 's' : ''}`;
+    document.getElementById('tickets-list').innerHTML = tickets.map(renderTicket).join('');
+    document.getElementById('tickets-view').classList.remove('hidden');
+
+    // Generate QR codes
+    tickets.forEach(t => generateQR(t.ticket_hash, `qr-${t.id}`));
+  } catch(e) {
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('tickets-list').innerHTML = '<p class="text-error text-center py-8">Failed to load tickets.</p>';
+    document.getElementById('tickets-view').classList.remove('hidden');
+  }
+});
+
+function renderTicket(t) {
+  const ev = t.event;
+  const upcoming = ev.is_upcoming;
+  const scanned = t.is_scanned;
+  return `
+  <div class="ticket-card glass-card rounded-xl overflow-hidden border border-white/30 shadow-[0_4px_24px_rgba(124,58,237,0.08)]">
+    <div class="relative h-44">
+      <img src="${ev.image || PLACEHOLDER}" alt="${ev.title}" class="w-full h-full object-cover" onerror="this.src='${PLACEHOLDER}'"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+      <div class="absolute top-3 right-3 ${upcoming && !scanned ? 'bg-primary' : scanned ? 'bg-gray-500' : 'bg-orange-500'} text-white px-3 py-1 rounded-full text-label-caps font-bold">
+        ${scanned ? 'USED' : upcoming ? 'UPCOMING' : 'PAST'}
+      </div>
+      <div class="absolute bottom-3 left-4 text-white">
+        <p class="text-label-caps opacity-80">${fmtDate(ev.date)}</p>
+        <h3 class="font-bold text-lg leading-tight">${ev.title}</h3>
+      </div>
+    </div>
+    <div class="p-lg">
+      <div class="flex items-center gap-sm text-on-surface-variant mb-lg">
+        <span class="material-symbols-outlined text-[18px]">location_on</span>
+        <span class="text-body-md">${ev.venue_name}</span>
+      </div>
+      <!-- Collapsed QR toggle -->
+      <button onclick="toggleQR(${t.id})" class="w-full flex items-center justify-between py-sm px-md bg-surface-container-low rounded-xl border border-outline-variant/30 mb-sm transition-colors hover:bg-surface-container">
+        <div class="flex items-center gap-sm text-primary">
+          <span class="material-symbols-outlined">qr_code_2</span>
+          <span class="text-label-caps font-bold">VIEW QR TICKET</span>
+        </div>
+        <span class="material-symbols-outlined text-on-surface-variant" id="qr-arrow-${t.id}">expand_more</span>
+      </button>
+      <div id="qr-section-${t.id}" class="qr-section bg-white rounded-xl p-lg flex flex-col items-center border-2 border-dashed border-outline-variant mb-md">
+        <div class="bg-primary/5 p-md rounded-lg mb-md">
+          <canvas id="qr-${t.id}" class="w-40 h-40"></canvas>
+        </div>
+        <p class="text-label-caps text-on-surface-variant text-center">SCAN AT ENTRANCE</p>
+        <p class="text-[10px] text-outline mt-1 font-mono break-all text-center">${t.ticket_hash.substring(0, 20)}…</p>
+        ${scanned ? '<div class="mt-3 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-label-caps">✓ Scanned at '+(t.scanned_at ? new Date(t.scanned_at).toLocaleString() : '—')+'</div>' : ''}
+      </div>
+      <div class="flex gap-md">
+        <div class="flex-1 bg-surface-container-low p-sm rounded-xl text-center">
+          <p class="text-label-caps text-on-surface-variant">PAID</p>
+          <p class="font-bold text-primary">${fmtPrice(t.price_paid)}</p>
+        </div>
+        <div class="flex-1 bg-surface-container-low p-sm rounded-xl text-center">
+          <p class="text-label-caps text-on-surface-variant">PURCHASED</p>
+          <p class="font-bold text-on-surface text-xs">${new Date(t.purchased_at).toLocaleDateString()}</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleQR(id) {
+  const sec = document.getElementById(`qr-section-${id}`);
+  const arrow = document.getElementById(`qr-arrow-${id}`);
+  sec.classList.toggle('open');
+  arrow.textContent = sec.classList.contains('open') ? 'expand_less' : 'expand_more';
+}
+
+// Generate real QR code using qrcodejs
+function generateQR(hash, canvasId) {
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  script.onload = () => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    new QRCode(canvas.parentElement, {
+      text: hash,
+      width: 160, height: 160,
+      colorDark: '#630ed4', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    canvas.remove();
+  };
+  if (!window._qrLoaded) {
+    document.head.appendChild(script);
+    window._qrLoaded = true;
+  } else {
+    script.onload();
+  }
+}
+</script>
+</body></html>
