@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Event Attendees — VIBE CHECK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+tailwind.config = {
+  darkMode:"class",
+  theme:{ extend:{
+    colors:{
+      "primary":"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff",
+      "secondary":"#00687a","tertiary":"#7d3d00",
+      "surface":"#fef7ff","surface-container-lowest":"#ffffff","surface-container-low":"#f9f1ff",
+      "surface-container":"#f3ebfa","surface-container-high":"#ede5f4","surface-variant":"#e8dfee",
+      "on-surface":"#1d1a24","on-surface-variant":"#4a4455",
+      "outline":"#7b7487","outline-variant":"#ccc3d8",
+      "background":"#fef7ff","error":"#ba1a1a"
+    },
+    borderRadius:{ DEFAULT:"1rem", lg:"2rem", full:"9999px" },
+    spacing:{ xs:"4px",sm:"8px",md:"16px",lg:"24px",xl:"48px",gutter:"16px","margin-mobile":"20px" },
+    fontSize:{
+      "headline-lg":["32px",{lineHeight:"1.2",fontWeight:"700"}],
+      "headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],
+      "body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+      "label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}]
+    }
+  }}
+}
+</script>
+<style>
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+body { font-family:'Inter',sans-serif; background:#fef7ff; }
+.glass-card { background:rgba(255,255,255,.8); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.4); }
+.skeleton { background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.nav-active { background:rgba(124,58,237,.12); color:#630ed4; border-radius:.75rem; }
+.event-tab.active { background:#630ed4; color:#fff; box-shadow:0 4px 12px rgba(99,14,212,.3); }
+.event-tab:not(.active) { background:rgba(124,58,237,.08); color:#630ed4; }
+.attended-row { border-left:4px solid #10b981; }
+.pending-row  { border-left:4px solid #e5e7eb; }
+@keyframes slide-in { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+.row-enter { animation:slide-in .2s ease-out forwards; }
+</style>
+</head>
+<body class="text-on-surface pb-28">
+
+<!-- Ambient -->
+<div class="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-15">
+  <div class="absolute -top-24 -right-24 w-80 h-80 bg-primary rounded-full blur-[100px]"></div>
+  <div class="absolute bottom-0 -left-24 w-64 h-64 bg-secondary rounded-full blur-[80px]"></div>
+</div>
+
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl flex items-center px-margin-mobile h-16 border-b border-outline-variant/20 shadow-sm">
+  <button onclick="history.back()" class="text-primary active:scale-95 transition-transform mr-md">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </button>
+  <div class="flex-1 min-w-0">
+    <h1 class="font-extrabold tracking-tighter text-primary text-xl">ATTENDEES</h1>
+    <p id="header-subtitle" class="text-[11px] text-on-surface-variant truncate">Loading…</p>
+  </div>
+  <div class="text-right shrink-0 ml-md">
+    <p id="header-stats" class="text-label-caps text-primary font-bold"></p>
+  </div>
+</header>
+
+<main class="relative z-10 pt-20 px-margin-mobile pb-4">
+
+  <!-- Auth / organizer gate -->
+  <div id="auth-wall" class="hidden text-center py-24">
+    <span class="material-symbols-outlined text-6xl text-primary mb-4 block">lock</span>
+    <h2 class="text-headline-md font-bold mb-2">Organizer access only</h2>
+    <a href="login.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25">SIGN IN</a>
+  </div>
+
+  <!-- Skeleton -->
+  <div id="loading-state">
+    <div class="space-y-sm mb-lg overflow-x-auto flex gap-sm pb-1">
+      <div class="skeleton h-10 w-36 rounded-full shrink-0"></div>
+      <div class="skeleton h-10 w-32 rounded-full shrink-0"></div>
+      <div class="skeleton h-10 w-40 rounded-full shrink-0"></div>
+    </div>
+    <div class="grid grid-cols-3 gap-md mb-lg">
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
+    </div>
+    <div class="space-y-sm">
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
+      <div class="skeleton h-20 rounded-xl"></div>
+    </div>
+  </div>
+
+  <!-- Loaded content -->
+  <div id="main-content" class="hidden">
+
+    <!-- Event selector tabs -->
+    <div class="mb-lg">
+      <p class="text-label-caps text-on-surface-variant mb-sm">SELECT EVENT</p>
+      <div id="event-tabs" class="flex gap-sm overflow-x-auto hide-scrollbar pb-1"></div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-3 gap-md mb-lg" id="stats-row">
+      <div class="glass-card p-md rounded-xl text-center border border-primary/10">
+        <p id="stat-total" class="text-headline-md font-extrabold text-primary">—</p>
+        <p class="text-label-caps text-on-surface-variant mt-xs">REGISTERED</p>
+      </div>
+      <div class="glass-card p-md rounded-xl text-center border border-green-200">
+        <p id="stat-attended" class="text-headline-md font-extrabold text-green-600">—</p>
+        <p class="text-label-caps text-on-surface-variant mt-xs">ATTENDED</p>
+      </div>
+      <div class="glass-card p-md rounded-xl text-center border border-orange-200">
+        <p id="stat-pending" class="text-headline-md font-extrabold text-orange-500">—</p>
+        <p class="text-label-caps text-on-surface-variant mt-xs">PENDING</p>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="flex items-center justify-between mb-md">
+      <div class="flex gap-sm">
+        <button id="f-all"      onclick="setFilter('all')"      class="px-md py-xs rounded-full text-label-caps font-bold bg-primary text-white">ALL</button>
+        <button id="f-attended" onclick="setFilter('attended')" class="px-md py-xs rounded-full text-label-caps font-bold bg-green-50 text-green-700 border border-green-200">✓ ATTENDED</button>
+        <button id="f-pending"  onclick="setFilter('pending')"  class="px-md py-xs rounded-full text-label-caps font-bold bg-orange-50 text-orange-600 border border-orange-200">⏳ PENDING</button>
+      </div>
+      <p id="list-count" class="text-label-caps text-on-surface-variant"></p>
+    </div>
+
+    <!-- Search -->
+    <div class="relative mb-md">
+      <span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+      <input id="search-input" type="text" placeholder="Search by name or email…"
+        oninput="renderRows()"
+        class="w-full pl-10 pr-md py-sm bg-surface-container-low rounded-xl border border-outline-variant/30 text-on-surface text-body-md placeholder:text-outline focus:outline-none focus:border-primary/40 transition-colors"/>
+    </div>
+
+    <!-- Attendee list -->
+    <div id="attendee-list" class="space-y-sm"></div>
+
+    <!-- Empty attendee state -->
+    <div id="empty-attendees" class="hidden text-center py-16">
+      <span class="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4 block">group_off</span>
+      <h2 class="text-headline-md font-bold mb-2">No registrations yet</h2>
+      <p class="text-on-surface-variant">Share your event to get attendees!</p>
+    </div>
+
+  </div><!-- /main-content -->
+
+</main>
+
+<!-- Organizer Bottom Nav -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
+  <a href="organizer.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+    <span class="material-symbols-outlined">dashboard</span>
+    <span class="text-label-caps mt-xs">My Events</span>
+  </a>
+  <a href="../scanner.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+    <span class="material-symbols-outlined">qr_code_scanner</span>
+    <span class="text-label-caps mt-xs">Scanner</span>
+  </a>
+  <div class="nav-active flex flex-col items-center justify-center px-4 py-2">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">confirmation_number</span>
+    <span class="text-label-caps mt-xs">Tickets</span>
+  </div>
+  <a href="profile.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-caps mt-xs">Profile</span>
+  </a>
+</nav>
+
+<script src="api.js"></script>
+<script>
+let allEvents    = [];
+let currentEvent = null;
+let attendees    = [];
+let currentFilter = 'all';
+
+window.addEventListener('DOMContentLoaded', async () => {
+  if (!isLoggedIn()) {
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('auth-wall').classList.remove('hidden');
+    return;
+  }
+  const user = getUser();
+  if (!user || user.role !== 'organizer') {
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('auth-wall').classList.remove('hidden');
+    return;
+  }
+  await loadEvents();
+});
+
+// ── Load organizer's events ───────────────────────────────────────────────
+async function loadEvents() {
+  try {
+    const data  = await fetchOrganizerEvents();
+    allEvents   = data.results || data || [];
+
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+
+    if (!allEvents.length) {
+      document.getElementById('event-tabs').innerHTML =
+        '<p class="text-on-surface-variant text-sm">No events yet.</p>';
+      return;
+    }
+
+    renderEventTabs();
+    selectEvent(allEvents[0].id); // auto-select first event
+  } catch(e) {
+    document.getElementById('loading-state').innerHTML =
+      '<p class="text-error text-center py-12">Failed to load events. Is the backend running?</p>';
+  }
+}
+
+// ── Event tab pills ───────────────────────────────────────────────────────
+function renderEventTabs() {
+  document.getElementById('event-tabs').innerHTML = allEvents.map(ev => `
+    <button id="tab-${ev.id}" onclick="selectEvent(${ev.id})"
+      class="event-tab shrink-0 px-lg py-sm rounded-full text-label-caps font-bold whitespace-nowrap transition-all active:scale-95">
+      ${ev.title.length > 22 ? ev.title.slice(0,22)+'…' : ev.title}
+    </button>`).join('');
+}
+
+// ── Select event → fetch attendees ────────────────────────────────────────
+async function selectEvent(eventId) {
+  currentEvent = eventId;
+  document.querySelectorAll('.event-tab').forEach(b => b.classList.remove('active'));
+  const tab = document.getElementById(`tab-${eventId}`);
+  if (tab) tab.classList.add('active');
+
+  document.getElementById('attendee-list').innerHTML =
+    '<div class="space-y-sm">' + Array(3).fill('<div class="skeleton h-20 rounded-xl"></div>').join('') + '</div>';
+
+  try {
+    const data = await fetchOrganizerAttendees(eventId);
+    attendees  = data.attendees || [];
+
+    document.getElementById('header-subtitle').textContent = data.event_title;
+    document.getElementById('header-stats').textContent    =
+      `${data.attended}/${data.total} attended`;
+
+    document.getElementById('stat-total').textContent    = data.total;
+    document.getElementById('stat-attended').textContent = data.attended;
+    document.getElementById('stat-pending').textContent  = data.total - data.attended;
+
+    document.getElementById('search-input').value = '';
+    currentFilter = 'all';
+    updateFilterBtns();
+    renderRows();
+  } catch(e) {
+    document.getElementById('attendee-list').innerHTML =
+      '<p class="text-error text-center py-8">Failed to load attendees.</p>';
+  }
+}
+
+// ── Filter ────────────────────────────────────────────────────────────────
+function setFilter(f) {
+  currentFilter = f;
+  updateFilterBtns();
+  renderRows();
+}
+
+function updateFilterBtns() {
+  const base = 'px-md py-xs rounded-full text-label-caps font-bold transition-all';
+  document.getElementById('f-all').className      = base + (currentFilter === 'all'      ? ' bg-primary text-white shadow-md' : ' bg-surface-container text-on-surface-variant');
+  document.getElementById('f-attended').className = base + (currentFilter === 'attended' ? ' bg-green-600 text-white shadow-md' : ' bg-green-50 text-green-700 border border-green-200');
+  document.getElementById('f-pending').className  = base + (currentFilter === 'pending'  ? ' bg-orange-500 text-white shadow-md' : ' bg-orange-50 text-orange-600 border border-orange-200');
+}
+
+// ── Render attendee rows ──────────────────────────────────────────────────
+function renderRows() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+
+  let filtered = attendees;
+  if (currentFilter === 'attended') filtered = filtered.filter(t => t.is_scanned);
+  if (currentFilter === 'pending')  filtered = filtered.filter(t => !t.is_scanned);
+  if (q) filtered = filtered.filter(t =>
+    t.attendee.username.toLowerCase().includes(q) ||
+    t.attendee.email.toLowerCase().includes(q) ||
+    t.attendee.full_name.toLowerCase().includes(q)
+  );
+
+  document.getElementById('list-count').textContent =
+    filtered.length ? `${filtered.length} attendee${filtered.length !== 1 ? 's' : ''}` : '';
+
+  if (!filtered.length) {
+    document.getElementById('attendee-list').innerHTML = '';
+    document.getElementById('empty-attendees').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('empty-attendees').classList.add('hidden');
+
+  document.getElementById('attendee-list').innerHTML = filtered.map((t, i) => `
+    <div class="row-enter glass-card rounded-xl p-md flex items-center gap-md border border-white/30 ${t.is_scanned ? 'attended-row' : 'pending-row'}"
+         style="animation-delay:${i * 30}ms">
+
+      <!-- Avatar -->
+      <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-extrabold text-on-primary text-lg
+                  ${t.is_scanned ? 'bg-green-500' : 'bg-primary/80'}">
+        ${t.attendee.full_name.slice(0,1).toUpperCase()}
+      </div>
+
+      <!-- Info -->
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-on-surface truncate">${t.attendee.full_name}</p>
+        <p class="text-label-caps text-on-surface-variant truncate">${t.attendee.email}</p>
+        <p class="text-[10px] text-outline font-mono mt-xs">#${t.ticket_hash.slice(0,16)}…</p>
+      </div>
+
+      <!-- Status badge -->
+      <div class="shrink-0 flex flex-col items-center gap-xs">
+        ${t.is_scanned ? `
+          <div class="w-9 h-9 bg-green-500 rounded-full flex items-center justify-center shadow-md shadow-green-200">
+            <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1">check_circle</span>
+          </div>
+          <span class="text-[9px] font-bold text-green-600 uppercase tracking-wide">ATTENDED</span>
+          ${t.scanned_at ? `<span class="text-[9px] text-outline">${new Date(t.scanned_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>` : ''}
+        ` : `
+          <div class="w-9 h-9 bg-surface-container border-2 border-outline-variant rounded-full flex items-center justify-center">
+            <span class="material-symbols-outlined text-outline text-[20px]">radio_button_unchecked</span>
+          </div>
+          <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-wide">PENDING</span>
+        `}
+      </div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

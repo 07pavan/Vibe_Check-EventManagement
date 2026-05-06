@@ -7,6 +7,7 @@ from .views import (
     EventListCreateView,
     EventDetailView,
     OrganizerEventListView,
+    EventAttendeesView,
     TicketPurchaseView,
     UserTicketListView,
     TicketScanView,
@@ -18,8 +19,9 @@ urlpatterns = [
     path("events/",         EventListCreateView.as_view(), name="event-list-create"),
     path("events/<int:pk>/", EventDetailView.as_view(),    name="event-detail"),
 
-    # Organizer-only dashboard endpoint
-    path("organizer/events/", OrganizerEventListView.as_view(), name="organizer-event-list"),
+    # Organizer-only dashboard endpoints
+    path("organizer/events/",                              OrganizerEventListView.as_view(), name="organizer-event-list"),
+    path("organizer/events/<int:event_id>/attendees/",     EventAttendeesView.as_view(),     name="organizer-event-attendees"),
 
     # Ticket endpoints
     path("tickets/purchase/",                  TicketPurchaseView.as_view(), name="ticket-purchase"),

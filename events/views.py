@@ -153,6 +153,65 @@ class OrganizerEventListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
+class EventAttendeesView(APIView):
+    """
+    GET /api/organizer/events/<event_id>/attendees/
+
+    Returns all ticket holders for one of the organizer's events.
+    Auth: Bearer token — Organizer only, and must own the event.
+
+    Response per ticket:
+      id, ticket_hash, is_scanned, scanned_at, price_paid,
+      purchased_at, attendee: {username, email, full_name}
+    """
+    permission_classes = [IsOrganizer]
+
+    def get(self, request, event_id):
+        event = get_object_or_404(Event, pk=event_id)
+
+        # Must own this event
+        if event.organizer != request.user:
+            return Response(
+                {"detail": "You do not own this event."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        tickets = (
+            Ticket.objects
+            .select_related("user")
+            .filter(event=event)
+            .order_by("-purchased_at")
+        )
+
+        data = [
+            {
+                "id":           t.id,
+                "ticket_hash":  t.ticket_hash,
+                "is_scanned":   t.is_scanned,
+                "scanned_at":   t.scanned_at,
+                "price_paid":   str(t.price_paid),
+                "purchased_at": t.purchased_at,
+                "attendee": {
+                    "username":   t.user.username,
+                    "email":      t.user.email,
+                    "full_name":  t.user.get_full_name() or t.user.username,
+                },
+            }
+            for t in tickets
+        ]
+
+        return Response(
+            {
+                "event_id":    event.id,
+                "event_title": event.title,
+                "total":       len(data),
+                "attended":    sum(1 for t in tickets if t.is_scanned),
+                "attendees":   data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 # --------------------------------------------------------------------------- #
 # Ticket Views
 # --------------------------------------------------------------------------- #

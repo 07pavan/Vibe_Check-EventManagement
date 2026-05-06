@@ -110,6 +110,9 @@ function fetchOrganizerEvents(params = {}) {
   const qs = new URLSearchParams(params).toString();
   return apiFetch('/organizer/events/' + (qs ? '?' + qs : ''));
 }
+function fetchOrganizerAttendees(eventId) {
+  return apiFetch(`/organizer/events/${eventId}/attendees/`);
+}
 
 function createEvent(formData) {
   // formData is a FormData object so the browser sets multipart/form-data
