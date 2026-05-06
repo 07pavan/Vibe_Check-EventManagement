@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html class="light" lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -186,7 +186,7 @@ body { font-family:'Inter',sans-serif; background:#fef7ff; min-height:max(884px,
     <span class="material-symbols-outlined">local_activity</span>
     <span class="text-label-caps mt-xs">My Tickets</span>
   </a>
-  <a href="#" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+  <a href="liked.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
     <span class="material-symbols-outlined">favorite</span>
     <span class="text-label-caps mt-xs">Liked</span>
   </a>
@@ -267,9 +267,11 @@ function renderCard(ev) {
   const emoji = CATEGORY_EMOJI[ev.category] || '🎉';
   const img   = ev.image || PLACEHOLDER;
   const sold  = ev.tickets_remaining === 0;
+  const liked = isLiked(ev.id);
+  const evJson = encodeURIComponent(JSON.stringify(ev));
   return `
-  <div class="event-card bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(124,58,237,0.06)] border border-surface-variant cursor-pointer" onclick="window.location.href='event.html?id=${ev.id}'">
-    <div class="aspect-[16/9] relative overflow-hidden">
+  <div class="event-card bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(124,58,237,0.06)] border border-surface-variant">
+    <div class="aspect-[16/9] relative overflow-hidden cursor-pointer" onclick="window.location.href='event.html?id=${ev.id}'">
       <img src="${img}" alt="${ev.title}" class="w-full h-full object-cover" onerror="this.src='${PLACEHOLDER}'"/>
       <div class="absolute top-sm right-sm bg-white/90 backdrop-blur px-md py-xs rounded-full text-label-caps font-bold text-primary shadow-sm">${fmtPrice(ev.price)}</div>
       <div class="absolute top-sm left-sm bg-primary/90 text-white px-sm py-xs rounded-full text-[10px] font-bold uppercase">${emoji} ${ev.category_display}</div>
@@ -280,18 +282,43 @@ function renderCard(ev) {
         <span class="material-symbols-outlined text-sm">calendar_month</span>
         <span class="text-[11px] text-label-caps tracking-wider">${fmtDate(ev.date)}</span>
       </div>
-      <h4 class="font-headline-md text-headline-md text-on-surface mb-sm leading-tight">${ev.title}</h4>
+      <h4 class="font-headline-md text-headline-md text-on-surface mb-sm leading-tight cursor-pointer" onclick="window.location.href='event.html?id=${ev.id}'">${ev.title}</h4>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-1 text-secondary text-sm">
           <span class="material-symbols-outlined text-sm">location_on</span>
-          <span class="truncate max-w-[160px]">${ev.venue_name}</span>
+          <span class="truncate max-w-[120px]">${ev.venue_name}</span>
         </div>
-        <button class="bg-primary text-on-primary px-lg py-sm rounded-full font-label-caps text-label-caps active:scale-95 transition-transform shadow-lg shadow-primary/20">
-          VIEW DETAILS
-        </button>
+        <div class="flex items-center gap-sm">
+          <button
+            id="like-btn-${ev.id}"
+            onclick="handleLike(event,'${evJson}')"
+            class="w-9 h-9 flex items-center justify-center rounded-full border transition-all duration-200 active:scale-90 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-surface-container border-outline-variant text-on-surface-variant hover:border-red-300 hover:text-red-400'}"
+            title="${liked ? 'Unlike' : 'Like'} this event"
+          ><span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' ${liked ? 1 : 0}">favorite</span></button>
+          <button onclick="window.location.href='event.html?id=${ev.id}'" class="bg-primary text-on-primary px-lg py-sm rounded-full font-label-caps text-label-caps active:scale-95 transition-transform shadow-lg shadow-primary/20">VIEW DETAILS</button>
+        </div>
       </div>
     </div>
   </div>`;
+}
+
+function handleLike(e, evJson) {
+  e.stopPropagation();
+  const ev    = JSON.parse(decodeURIComponent(evJson));
+  const liked = toggleLike(ev);
+  const btn   = document.getElementById(`like-btn-${ev.id}`);
+  if (!btn) return;
+  const icon  = btn.querySelector('.material-symbols-outlined');
+  if (liked) {
+    btn.className = 'w-9 h-9 flex items-center justify-center rounded-full border transition-all duration-200 active:scale-90 bg-red-50 border-red-200 text-red-500';
+    icon.style.fontVariationSettings = "'FILL' 1";
+    btn.title = 'Unlike this event';
+    btn.animate([{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:240,easing:'ease-out'});
+  } else {
+    btn.className = 'w-9 h-9 flex items-center justify-center rounded-full border transition-all duration-200 active:scale-90 bg-surface-container border-outline-variant text-on-surface-variant hover:border-red-300 hover:text-red-400';
+    icon.style.fontVariationSettings = "'FILL' 0";
+    btn.title = 'Like this event';
+  }
 }
 
 async function loadMore() {

@@ -153,3 +153,15 @@ function fmtPrice(p) { return parseFloat(p) === 0 ? 'FREE' : '₹' + parseFloat(
 
 const CATEGORY_EMOJI = { music: '🎵', tech: '💻', food: '🍜', arts: '🎨' };
 
+// ── Liked Events (localStorage) ───────────────────────────────────────────
+// Stores full event objects so liked.html works offline / without refetch
+function getLikedMap()     { try { return JSON.parse(localStorage.getItem('vibe_liked') || '{}'); } catch { return {}; } }
+function saveLikedMap(map) { localStorage.setItem('vibe_liked', JSON.stringify(map)); }
+function isLiked(id)       { return !!getLikedMap()[id]; }
+function toggleLike(eventObj) {
+  const map = getLikedMap();
+  const id  = eventObj.id;
+  if (map[id]) { delete map[id]; saveLikedMap(map); return false; }
+  else         { map[id] = eventObj; saveLikedMap(map); return true; }
+}
+function getLikedEvents()  { return Object.values(getLikedMap()); }

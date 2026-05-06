@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Liked Events — VIBE CHECK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+tailwind.config = {
+  darkMode:"class",
+  theme:{ extend:{
+    colors:{
+      "primary":"#630ed4","primary-container":"#7c3aed","on-primary":"#ffffff","on-primary-container":"#ede0ff",
+      "secondary":"#00687a","tertiary":"#7d3d00",
+      "surface":"#fef7ff","surface-container-lowest":"#ffffff","surface-container-low":"#f9f1ff",
+      "surface-container":"#f3ebfa","surface-container-high":"#ede5f4","surface-variant":"#e8dfee",
+      "on-surface":"#1d1a24","on-surface-variant":"#4a4455",
+      "outline":"#7b7487","outline-variant":"#ccc3d8",
+      "background":"#fef7ff","error":"#ba1a1a"
+    },
+    borderRadius:{ DEFAULT:"1rem", lg:"2rem", full:"9999px" },
+    spacing:{ xs:"4px",sm:"8px",md:"16px",lg:"24px",xl:"48px",gutter:"16px","margin-mobile":"20px" },
+    fontSize:{
+      "headline-lg":["32px",{lineHeight:"1.2",fontWeight:"700"}],
+      "headline-md":["24px",{lineHeight:"1.3",fontWeight:"700"}],
+      "body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+      "label-caps":["12px",{lineHeight:"1.0",letterSpacing:"0.05em",fontWeight:"600"}]
+    }
+  }}
+}
+</script>
+<style>
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+body { font-family:'Inter',sans-serif; background:#fef7ff; }
+.glass-card { background:rgba(255,255,255,.8); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.4); }
+.event-card { transition:transform .2s, box-shadow .2s; }
+.event-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(124,58,237,.13); }
+.nav-active { background:rgba(124,58,237,.12); color:#630ed4; border-radius:.75rem; }
+@keyframes pop-in { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
+.card-enter { animation:pop-in .25s ease-out forwards; }
+</style>
+</head>
+<body class="text-on-surface pb-28">
+
+<!-- Ambient blobs -->
+<div class="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-20">
+  <div class="absolute -top-24 -right-24 w-80 h-80 bg-red-400 rounded-full blur-[100px]"></div>
+  <div class="absolute bottom-0 -left-24 w-64 h-64 bg-primary rounded-full blur-[80px]"></div>
+</div>
+
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl flex items-center px-margin-mobile h-16 border-b border-outline-variant/20 shadow-sm">
+  <a href="index.html" class="text-primary active:scale-95 transition-transform mr-md">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </a>
+  <div class="flex-1 text-center mr-8">
+    <h1 class="font-extrabold tracking-tighter text-primary text-xl">LIKED EVENTS</h1>
+  </div>
+</header>
+
+<main class="relative z-10 pt-20 px-margin-mobile pb-4">
+
+  <!-- Count + clear -->
+  <div class="flex items-center justify-between mb-lg">
+    <div>
+      <h2 class="text-headline-md font-bold text-on-surface">Your Favourites</h2>
+      <p id="liked-count" class="text-label-caps text-on-surface-variant mt-xs"></p>
+    </div>
+    <button id="clear-btn" onclick="clearAll()" class="hidden text-label-caps text-error font-bold px-md py-sm rounded-full border border-error/20 hover:bg-red-50 active:scale-95 transition-all">
+      CLEAR ALL
+    </button>
+  </div>
+
+  <!-- Grid -->
+  <div id="liked-grid" class="space-y-lg"></div>
+
+  <!-- Empty state -->
+  <div id="empty-state" class="hidden text-center py-24">
+    <div class="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-lg">
+      <span class="material-symbols-outlined text-5xl text-red-300">favorite_border</span>
+    </div>
+    <h2 class="text-headline-md font-bold mb-sm">No liked events yet</h2>
+    <p class="text-on-surface-variant text-body-md mb-lg">Tap the ♡ on any event to save it here.</p>
+    <a href="index.html" class="inline-block bg-primary text-on-primary px-xl py-md rounded-full font-bold text-label-caps shadow-lg shadow-primary/25 active:scale-95 transition-all">
+      DISCOVER EVENTS
+    </a>
+  </div>
+
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-lg bg-surface/80 backdrop-blur-xl flex justify-around items-center px-gutter py-sm shadow-[0_-4px_24px_rgba(124,58,237,0.1)]">
+  <a href="index.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+    <span class="material-symbols-outlined">explore</span>
+    <span class="text-label-caps mt-xs">Discover</span>
+  </a>
+  <a href="tickets.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+    <span class="material-symbols-outlined">local_activity</span>
+    <span class="text-label-caps mt-xs">My Tickets</span>
+  </a>
+  <div class="nav-active flex flex-col items-center justify-center px-4 py-2">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">favorite</span>
+    <span class="text-label-caps mt-xs">Liked</span>
+  </div>
+  <a href="profile.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all duration-200 active:scale-90">
+    <span class="material-symbols-outlined">person</span>
+    <span class="text-label-caps mt-xs">Profile</span>
+  </a>
+</nav>
+
+<script src="api.js"></script>
+<script>
+const PLACEHOLDER = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBG0kETVkyKmuooroSqWkqUKcaDZjoUS446cKpcRrRBQoMUtbw8EgGnXqVe8fTqIWuGOHGJQlyx6Y1yoMQ0kM3GNKRnsoU4gQqMVfEswZ7Cp2tyrV2eyiVdN0b3MkbP9p7T7STCiMh_PqsWcYYK0Q55EXcRAtKXe3Rn2-kjEI8unDAKB7ui5SCRNch9rIOJ-6ug1jlhYkMk3mZ9NsRQ3ZdzjOIncfg4JBH1NRg7OMERIGdPX3UljTD8DDXr8otuRPzv6F-6ImKBYo';
+
+window.addEventListener('DOMContentLoaded', () => render());
+
+function render() {
+  const events = getLikedEvents();
+  const grid   = document.getElementById('liked-grid');
+  const empty  = document.getElementById('empty-state');
+  const count  = document.getElementById('liked-count');
+  const clear  = document.getElementById('clear-btn');
+
+  if (!events.length) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    count.textContent = '';
+    clear.classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  clear.classList.remove('hidden');
+  count.textContent = `${events.length} saved event${events.length !== 1 ? 's' : ''}`;
+
+  grid.innerHTML = events.map((ev, i) => renderLikedCard(ev, i)).join('');
+}
+
+function renderLikedCard(ev, i) {
+  const emoji = CATEGORY_EMOJI[ev.category] || '🎉';
+  const img   = ev.image || PLACEHOLDER;
+  const sold  = ev.tickets_remaining === 0;
+  const evJson = encodeURIComponent(JSON.stringify(ev));
+
+  return `
+  <div class="event-card card-enter glass-card rounded-2xl overflow-hidden border border-white/30 shadow-[0_4px_24px_rgba(124,58,237,0.08)]" style="animation-delay:${i * 60}ms">
+    <!-- Image hero -->
+    <div class="aspect-[16/9] relative overflow-hidden cursor-pointer" onclick="window.location.href='event.html?id=${ev.id}'">
+      <img src="${img}" alt="${ev.title}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" onerror="this.src='${PLACEHOLDER}'"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+      <div class="absolute top-sm left-sm bg-primary/90 text-white px-sm py-xs rounded-full text-[10px] font-bold uppercase">${emoji} ${ev.category_display || ev.category}</div>
+      <div class="absolute top-sm right-sm bg-white/90 backdrop-blur px-md py-xs rounded-full text-label-caps font-bold text-primary shadow-sm">${fmtPrice(ev.price)}</div>
+      ${sold ? '<div class="absolute bottom-sm left-sm bg-red-600 text-white px-sm py-xs rounded-full text-[10px] font-bold">SOLD OUT</div>' : ''}
+      <!-- Heart badge -->
+      <div class="absolute bottom-sm right-sm w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-md">
+        <span class="material-symbols-outlined text-white text-[18px]" style="font-variation-settings:'FILL' 1">favorite</span>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="p-md">
+      <div class="flex items-center text-outline mb-xs gap-1">
+        <span class="material-symbols-outlined text-sm">calendar_month</span>
+        <span class="text-[11px] text-label-caps tracking-wider">${fmtDate(ev.date)}</span>
+      </div>
+      <h3 class="font-bold text-on-surface text-lg leading-snug mb-sm cursor-pointer hover:text-primary transition-colors" onclick="window.location.href='event.html?id=${ev.id}'">${ev.title}</h3>
+
+      <div class="flex items-center gap-1 text-secondary text-sm mb-md">
+        <span class="material-symbols-outlined text-sm">location_on</span>
+        <span class="truncate">${ev.venue_name}</span>
+      </div>
+
+      <!-- Price + tickets -->
+      <div class="flex items-center justify-between mb-md">
+        <div class="bg-surface-container-low px-md py-sm rounded-full border border-outline-variant/20">
+          <span class="text-label-caps text-on-surface-variant">PRICE </span>
+          <span class="font-extrabold text-primary">${fmtPrice(ev.price)}</span>
+        </div>
+        <div class="text-label-caps text-on-surface-variant">
+          ${ev.tickets_remaining} spots left
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-sm">
+        <!-- Unlike button -->
+        <button
+          onclick="unlikeCard(event, '${evJson}')"
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-red-50 border border-red-200 text-red-500 active:scale-90 transition-all hover:bg-red-100 shrink-0"
+          title="Remove from liked"
+        ><span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">favorite</span></button>
+        <!-- Get ticket or view -->
+        <a href="event.html?id=${ev.id}" class="flex-1 text-center bg-primary text-on-primary py-sm rounded-full font-bold text-label-caps shadow-md shadow-primary/20 active:scale-95 transition-all hover:bg-primary/90">
+          GET TICKET →
+        </a>
+      </div>
+    </div>
+  </div>`;
+}
+
+function unlikeCard(e, evJson) {
+  e.stopPropagation();
+  const ev = JSON.parse(decodeURIComponent(evJson));
+  toggleLike(ev); // removes it (already liked)
+  // Animate card out
+  const card = e.currentTarget.closest('.event-card');
+  if (card) {
+    card.style.transition = 'opacity .2s, transform .2s';
+    card.style.opacity = '0';
+    card.style.transform = 'scale(.95)';
+    setTimeout(() => render(), 220);
+  } else {
+    render();
+  }
+}
+
+function clearAll() {
+  if (!confirm('Remove all liked events?')) return;
+  saveLikedMap({});
+  render();
+}
+</script>
+</body>
+</html>
