@@ -2,17 +2,17 @@
 const API = 'http://127.0.0.1:8000/api';
 
 // ── Token / user storage ──────────────────────────────────────────────────
-function getToken()    { return localStorage.getItem('vibe_token'); }
-function getRefresh()  { return localStorage.getItem('vibe_refresh'); }
-function setToken(t)   { localStorage.setItem('vibe_token', t); }
-function setRefresh(t) { localStorage.setItem('vibe_refresh', t); }
+function getToken()    { return localStorage.getItem('goattend_token'); }
+function getRefresh()  { return localStorage.getItem('goattend_refresh'); }
+function setToken(t)   { localStorage.setItem('goattend_token', t); }
+function setRefresh(t) { localStorage.setItem('goattend_refresh', t); }
 function clearAuth()   {
-  localStorage.removeItem('vibe_token');
-  localStorage.removeItem('vibe_refresh');
-  localStorage.removeItem('vibe_user');
+  localStorage.removeItem('goattend_token');
+  localStorage.removeItem('goattend_refresh');
+  localStorage.removeItem('goattend_user');
 }
-function getUser() { try { return JSON.parse(localStorage.getItem('vibe_user')); } catch { return null; } }
-function setUser(u) { localStorage.setItem('vibe_user', JSON.stringify(u)); }
+function getUser() { try { return JSON.parse(localStorage.getItem('goattend_user')); } catch { return null; } }
+function setUser(u) { localStorage.setItem('goattend_user', JSON.stringify(u)); }
 function isLoggedIn() { return !!getToken(); }
 
 // ── Silent token refresh ──────────────────────────────────────────────────
@@ -158,8 +158,8 @@ const CATEGORY_EMOJI = { music: '🎵', tech: '💻', food: '🍜', arts: '🎨'
 
 // ── Liked Events (localStorage) ───────────────────────────────────────────
 // Stores full event objects so liked.html works offline / without refetch
-function getLikedMap()     { try { return JSON.parse(localStorage.getItem('vibe_liked') || '{}'); } catch { return {}; } }
-function saveLikedMap(map) { localStorage.setItem('vibe_liked', JSON.stringify(map)); }
+function getLikedMap()     { try { return JSON.parse(localStorage.getItem('goattend_liked') || '{}'); } catch { return {}; } }
+function saveLikedMap(map) { localStorage.setItem('goattend_liked', JSON.stringify(map)); }
 function isLiked(id)       { return !!getLikedMap()[id]; }
 function toggleLike(eventObj) {
   const map = getLikedMap();

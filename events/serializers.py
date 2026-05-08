@@ -129,6 +129,16 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_total_tickets(self, value):
         if value < 1:
             raise serializers.ValidationError("Must offer at least 1 ticket.")
+
+        # On UPDATE only: prevent reducing below the already-sold count.
+        # self.instance is None during creation, so we skip this check then.
+        if self.instance is not None:
+            tickets_sold = self.instance.tickets.count()
+            if value < tickets_sold:
+                raise serializers.ValidationError(
+                    f"Cannot set total tickets to {value} — "
+                    f"{tickets_sold} ticket(s) have already been sold for this event."
+                )
         return value
 
     def create(self, validated_data):
@@ -194,7 +204,17 @@ class OrganizerEventSerializer(serializers.ModelSerializer):
         ]
 
     def get_revenue(self, obj) -> str:
-        """Total revenue = sum of price_paid across all tickets for this event."""
+        """
+        Total revenue = sum of price_paid across all tickets for this event.
+        Reads from the `_revenue` annotation injected by OrganizerEventListView
+        to avoid an extra DB query per event (eliminates N+1).
+        Falls back to a live aggregate only when the annotation is absent
+        (e.g. when this serializer is used outside the list view).
+        """
+        val = getattr(obj, "_revenue", None)
+        if val is not None:
+            return str(val)
+        # Fallback: direct aggregate (used in non-annotated contexts)
         from django.db.models import Sum
         result = obj.tickets.aggregate(total=Sum("price_paid"))["total"]
         return str(result or "0.00")
@@ -205,12 +225,25 @@ class OrganizerEventSerializer(serializers.ModelSerializer):
             return "draft"
         if not obj.is_upcoming:
             return "past"
-        if obj.tickets_remaining == 0:
+        # Use annotation when available to avoid extra query
+        remaining = getattr(obj, "_tickets_remaining", None)
+        if remaining is None:
+            remaining = obj.tickets_remaining
+        if remaining == 0:
             return "sold_out"
         return "live"
 
     def get_scanned_count(self, obj) -> int:
-        """Number of tickets already scanned at the door."""
+        """
+        Number of tickets already scanned at the door.
+        Reads from the `_scanned_count` annotation injected by OrganizerEventListView
+        to avoid an extra DB query per event (eliminates N+1).
+        Falls back to a live count only when the annotation is absent.
+        """
+        val = getattr(obj, "_scanned_count", None)
+        if val is not None:
+            return val
+        # Fallback: direct count (used in non-annotated contexts)
         return obj.tickets.filter(is_scanned=True).count()
 
 

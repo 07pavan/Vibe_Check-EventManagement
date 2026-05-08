@@ -28,6 +28,8 @@ class EventFilter(django_filters.FilterSet):
     date = django_filters.DateFilter(field_name="date", lookup_expr="date")
 
     # Date range
+    # Both filters apply a date-level cast so that a DateTimeField stored as
+    # e.g. 2026-06-15 18:00 UTC is correctly matched by ?date_after=2026-06-15.
     date_after = django_filters.DateFilter(
         field_name="date",
         lookup_expr="date__gte",
@@ -35,7 +37,7 @@ class EventFilter(django_filters.FilterSet):
     )
     date_before = django_filters.DateFilter(
         field_name="date",
-        lookup_expr="date__date__lte",
+        lookup_expr="date__lte",
         label="Events on or before this date (YYYY-MM-DD)",
     )
 

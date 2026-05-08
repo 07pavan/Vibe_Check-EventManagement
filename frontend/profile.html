@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>My Profile — VIBE CHECK</title>
+<title>My Profile — GoAttend</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
@@ -43,6 +44,7 @@ tailwind.config = {
 <style>
 .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
 body { font-family:'Inter',sans-serif; background:#fef7ff; min-height:max(884px,100dvh); }
+.brand-logo { font-family:'Space Grotesk',sans-serif; font-weight:800; letter-spacing:-0.03em; text-transform:none; }
 .glass-card { background:rgba(255,255,255,.7); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.4); }
 .glass-header { background:rgba(254,247,255,.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
 .skeleton { background:linear-gradient(90deg,#f0e6ff 25%,#e8dfee 50%,#f0e6ff 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
@@ -70,7 +72,7 @@ body { font-family:'Inter',sans-serif; background:#fef7ff; min-height:max(884px,
   <button onclick="history.back()" class="text-primary active:scale-95 transition-transform duration-200">
     <span class="material-symbols-outlined">arrow_back</span>
   </button>
-  <h1 class="font-display-xl text-headline-md font-extrabold tracking-tighter text-primary uppercase">VIBE CHECK</h1>
+  <h1 class="brand-logo font-display-xl text-headline-md font-extrabold tracking-tighter text-primary">GoAttend</h1>
   <button onclick="handleSettings()" class="text-primary active:scale-95 transition-transform duration-200">
     <span class="material-symbols-outlined">settings</span>
   </button>
@@ -218,7 +220,7 @@ body { font-family:'Inter',sans-serif; background:#fef7ff; min-height:max(884px,
     </section>
 
     <!-- App version -->
-    <p class="text-center text-label-caps text-on-surface-variant/50 pb-4">VIBE CHECK v1.0 • Built with ♥</p>
+    <p class="text-center text-label-caps text-on-surface-variant/50 pb-4">GoAttend v1.0 • Built with ♥</p>
   </div><!-- /profile-content -->
 </main>
 

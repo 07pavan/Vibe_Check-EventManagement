@@ -1,10 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Organizer Dashboard — VIBE CHECK</title>
+<title>Organizer Dashboard — GoAttend</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script>
@@ -13,6 +14,7 @@ tailwind.config={theme:{extend:{colors:{primary:"#630ed4","primary-container":"#
 <style>
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
 body{font-family:'Inter',sans-serif;background:#fef7ff}
+.brand-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;letter-spacing:-0.03em}
 .status-live{background:#dcfce7;color:#15803d}
 .status-draft{background:#f3f4f6;color:#6b7280}
 .status-past{background:#fef3c7;color:#b45309}
@@ -32,7 +34,7 @@ label{display:block;font-size:12px;font-weight:600;color:#4a4455;letter-spacing:
 <div id="menu-overlay" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onclick="toggleMenu()"></div>
 <nav id="side-menu" class="hidden fixed top-0 left-0 h-full w-72 z-[70] bg-surface shadow-2xl flex flex-col p-6 gap-4">
   <div class="flex items-center justify-between mb-4">
-    <span class="font-extrabold text-primary tracking-tighter text-xl">VIBE CHECK</span>
+    <span class="brand-logo font-extrabold text-primary tracking-tighter text-xl">GoAttend</span>
     <button onclick="toggleMenu()" class="text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
   </div>
   <div class="bg-surface-container-low rounded-xl p-md mb-2">
@@ -496,7 +498,7 @@ async function confirmDelete() {
     <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">dashboard</span>
     <span class="text-label-caps mt-xs">My Events</span>
   </div>
-  <a href="../scanner.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all active:scale-90">
+  <a href="scanner.html" class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:text-primary transition-all active:scale-90">
     <span class="material-symbols-outlined">qr_code_scanner</span>
     <span class="text-label-caps mt-xs">Scanner</span>
   </a>

@@ -89,7 +89,7 @@ body { font-family:'Inter',sans-serif; background:#0f0a1e; min-height:100dvh; }
 
   <!-- Header -->
   <header class="flex items-center justify-between px-margin-mobile h-16 glass border-b border-white/10">
-    <a href="frontend/index.html" class="text-white/60 hover:text-white transition-colors active:scale-95">
+    <a href="index.html" class="text-white/60 hover:text-white transition-colors active:scale-95">
       <span class="material-symbols-outlined">arrow_back</span>
     </a>
     <div class="text-center">
@@ -180,7 +180,7 @@ body { font-family:'Inter',sans-serif; background:#0f0a1e; min-height:100dvh; }
   </main>
 </div>
 
-<script src="frontend/api.js"></script>
+<script src="api.js"></script>
 <script>
 // ── State ────────────────────────────────────────────────────────────────
 let isProcessing = false;
@@ -206,7 +206,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 function redirect(msg) {
-  window.location.href = `frontend/login.html?error=${encodeURIComponent(msg)}`;
+  window.location.href = `login.html?error=${encodeURIComponent(msg)}`;
 }
 
 // ── QR Scanner ─────────────────────────────────────────────────────────────

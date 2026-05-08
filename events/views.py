@@ -22,7 +22,7 @@ POST   /api/tickets/verify/      — verify & scan ticket via body hash (QR scan
 """
 
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, F, ExpressionWrapper, IntegerField
+from django.db.models import Count, F, ExpressionWrapper, IntegerField, Q, Sum
 from rest_framework import generics, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -129,10 +129,19 @@ class OrganizerEventListView(generics.ListAPIView):
     search_fields = ["title", "venue_name"]
 
     def get_queryset(self):
+        """
+        Returns the organizer's events fully annotated at DB level:
+          _tickets_sold      — total tickets purchased
+          _tickets_remaining — seats still available
+          _scanned_count     — tickets already scanned at the door
+          _revenue           — total price_paid across all tickets
+
+        All four values are computed in a SINGLE query, eliminating the
+        N+1 that previously existed for scanned_count and revenue.
+        """
         return (
             Event.objects
             .select_related("organizer")
-            .prefetch_related("tickets")
             .filter(organizer=self.request.user)
             .annotate(
                 _tickets_sold=Count("tickets"),
@@ -140,6 +149,13 @@ class OrganizerEventListView(generics.ListAPIView):
                     F("total_tickets") - Count("tickets"),
                     output_field=IntegerField(),
                 ),
+                # Count only the scanned tickets (conditional aggregate)
+                _scanned_count=Count(
+                    "tickets",
+                    filter=Q(tickets__is_scanned=True),
+                ),
+                # Sum of price_paid across all tickets for this event
+                _revenue=Sum("tickets__price_paid"),
             )
         )
 

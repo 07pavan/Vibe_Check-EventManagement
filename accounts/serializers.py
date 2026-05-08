@@ -33,7 +33,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 # --------------------------------------------------------------------------- #
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """Handles new user sign-up including password confirmation."""
+    """
+    Handles new user sign-up including password confirmation.
+
+    Security note: `role` is intentionally excluded from this serializer.
+    All new accounts are created as `regular` users (the model default).
+    Elevation to `organizer` is performed exclusively through Django Admin
+    to prevent privilege self-escalation via the API.
+    """
 
     password = serializers.CharField(
         write_only=True,
@@ -50,10 +57,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
-            "role",
             "password",
             "password2",
         ]
+        # `role` is NOT listed here — model default (regular) always applies.
 
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("password2"):
