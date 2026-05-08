@@ -9,6 +9,9 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+# Import image URL builder (avoids circular imports — events → accounts is fine)
+from events.utils import build_image_urls
+
 User = get_user_model()
 
 
@@ -77,6 +80,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Read / update current user's profile."""
 
+    avatar_urls = serializers.SerializerMethodField(
+        help_text="Responsive avatar URLs: thumbnail (80×80) and medium (200×200)."
+    )
+
+    def get_avatar_urls(self, obj):
+        """
+        Returns:
+            {
+                "original":  "<url> | null",
+                "thumbnail": "<url> | null",  ← 80×80 px
+                "medium":    "<url> | null"   ← 200×200 px
+            }
+        """
+        return build_image_urls(obj, "avatar", self.context.get("request"))
+
     class Meta:
         model = User
         fields = [
@@ -86,16 +104,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
-            "avatar",
+            "avatar",          # Original upload URL (kept for backward compat)
+            "avatar_urls",     # Responsive size dict
             "bio",
             "date_joined",
         ]
-        read_only_fields = ["id", "username", "role", "date_joined"]
+        read_only_fields = ["id", "username", "role", "date_joined", "avatar_urls"]
 
 
 class PublicUserSerializer(serializers.ModelSerializer):
-    """Minimal public view of a user (e.g. event organizer info)."""
+    """Minimal public view of a user (e.g. event organizer info on event cards)."""
+
+    avatar_urls = serializers.SerializerMethodField()
+
+    def get_avatar_urls(self, obj):
+        return build_image_urls(obj, "avatar", self.context.get("request"))
 
     class Meta:
         model = User
-        fields = ["id", "username", "first_name", "last_name", "avatar"]
+        fields = ["id", "username", "first_name", "last_name", "avatar", "avatar_urls"]

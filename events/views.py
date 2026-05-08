@@ -19,6 +19,12 @@ GET    /api/user/tickets/        — list own tickets
 
 POST   /api/tickets/<id>/scan/   — mark ticket as scanned via URL hash (Organizer only)
 POST   /api/tickets/verify/      — verify & scan ticket via body hash (QR scanner, Organizer only)
+
+Responsive / device-aware parameters
+────────────────────────────────────
+?device=mobile   → compact response (fewer fields, smaller images, 10/page)
+?device=tablet   → medium response (all fields, 15/page)
+?device=desktop  → full response (default, 20/page)
 """
 
 from django.shortcuts import get_object_or_404
@@ -30,6 +36,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import EventFilter
 from .models import Event, Ticket
+from .pagination import DeviceAwarePagination
 from .permissions import IsOrganizer, IsOrganizerOrReadOnly, IsEventOwnerOrReadOnly
 from .serializers import (
     EventListSerializer,
@@ -39,31 +46,52 @@ from .serializers import (
     TicketPurchaseSerializer,
     TicketSerializer,
 )
+from .utils import get_device
 
 
-# Permission classes are defined in events/permissions.py
-# IsOrganizer, IsOrganizerOrReadOnly, IsEventOwnerOrReadOnly
-# are imported above and applied per-view.
+# --------------------------------------------------------------------------- #
+# Device-aware mixin
+# --------------------------------------------------------------------------- #
+
+class DeviceAwareMixin:
+    """
+    Mixin for list views that injects `device` into the serializer context.
+
+    Reads ?device= from query params and passes it down so serializers can
+    adjust their field set and image size accordingly.
+
+    Apply to any view that returns a list of events or tickets:
+        class MyView(DeviceAwareMixin, generics.ListAPIView):
+            ...
+    """
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["device"] = get_device(self.request)
+        return ctx
 
 
 # --------------------------------------------------------------------------- #
 # Event Views
 # --------------------------------------------------------------------------- #
 
-class EventListCreateView(generics.ListCreateAPIView):
+class EventListCreateView(DeviceAwareMixin, generics.ListCreateAPIView):
     """
     GET  /api/events/  — public list with filtering
     POST /api/events/  — create (Organizer only)
+
+    ?device=mobile|tablet|desktop  controls field set and page size.
     """
-    permission_classes = [IsOrganizerOrReadOnly]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = EventFilter
-    search_fields = ["title", "description", "venue_name"]
-    ordering_fields = ["date", "price", "created_at"]
-    ordering = ["date"]
+    permission_classes  = [IsOrganizerOrReadOnly]
+    pagination_class    = DeviceAwarePagination
+    filter_backends     = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class     = EventFilter
+    search_fields       = ["title", "description", "venue_name"]
+    ordering_fields     = ["date", "price", "created_at"]
+    ordering            = ["date"]
 
     def get_queryset(self):
-        """Only show published events — tickets_remaining annotated at DB level to avoid N+1."""
+        """Only show published events — tickets_remaining annotated at DB level."""
         return (
             Event.objects
             .select_related("organizer")
@@ -89,8 +117,8 @@ class EventListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         event = serializer.save(organizer=request.user)
-        # Return the full detail view on creation
-        output = EventDetailSerializer(event, context={"request": request})
+        # Return full detail view on creation (device context forwarded)
+        output = EventDetailSerializer(event, context=self.get_serializer_context())
         return Response(output.data, status=status.HTTP_201_CREATED)
 
 
@@ -110,7 +138,7 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
         return EventDetailSerializer
 
 
-class OrganizerEventListView(generics.ListAPIView):
+class OrganizerEventListView(DeviceAwareMixin, generics.ListAPIView):
     """
     GET /api/organizer/events/
 
@@ -120,13 +148,15 @@ class OrganizerEventListView(generics.ListAPIView):
 
     Supports ordering: ?ordering=date | -date | price | created_at
     Auth: Bearer token — Organizer only.
+    ?device= is forwarded to the serializer for image-size selection.
     """
-    serializer_class = OrganizerEventSerializer
+    serializer_class  = OrganizerEventSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    ordering_fields = ["date", "price", "created_at", "tickets_sold"]
-    ordering = ["-created_at"]
-    search_fields = ["title", "venue_name"]
+    pagination_class  = DeviceAwarePagination
+    filter_backends   = [filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields   = ["date", "price", "created_at", "tickets_sold"]
+    ordering          = ["-created_at"]
+    search_fields     = ["title", "venue_name"]
 
     def get_queryset(self):
         """
@@ -255,7 +285,7 @@ class TicketPurchaseView(generics.CreateAPIView):
         return Response(output.data, status=status.HTTP_201_CREATED)
 
 
-class UserTicketListView(generics.ListAPIView):
+class UserTicketListView(DeviceAwareMixin, generics.ListAPIView):
     """
     GET /api/user/tickets/
 
@@ -271,11 +301,17 @@ class UserTicketListView(generics.ListAPIView):
       ?status=upcoming  — events whose date > now and not yet scanned
       ?status=past      — events whose date <= now
       ?status=used      — tickets that have already been scanned
+
+    Responsive:
+      ?device=mobile   — compact ticket fields, 10/page
+      ?device=tablet   — all fields, 15/page
+      ?device=desktop  — all fields, 20/page (default)
     """
-    serializer_class = TicketSerializer
+    serializer_class  = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.OrderingFilter]
-    ordering_fields = ["purchased_at", "event__date"]
+    pagination_class  = DeviceAwarePagination
+    filter_backends   = [filters.OrderingFilter]
+    ordering_fields   = ["purchased_at", "event__date"]
 
     def get_queryset(self):
         from django.utils import timezone

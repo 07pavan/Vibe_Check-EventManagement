@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
+    "imagekit",          # Multi-size image generation (responsive images)
     # Local
     "accounts",
     "events",
@@ -185,3 +186,11 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+# ---------------------------------------------------------------------------
+# django-imagekit — Responsive image generation
+# ---------------------------------------------------------------------------
+# Images are generated on first access and cached to disk (optimistic strategy).
+# Cache lives inside MEDIA_ROOT/CACHE/ so it is served by the same media URL.
+IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = "imagekit.cachefiles.strategies.Optimistic"
+IMAGEKIT_CACHEFILE_DIR = "CACHE/images"
