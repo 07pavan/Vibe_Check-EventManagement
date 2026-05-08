@@ -19,12 +19,6 @@ GET    /api/user/tickets/        — list own tickets
 
 POST   /api/tickets/<id>/scan/   — mark ticket as scanned via URL hash (Organizer only)
 POST   /api/tickets/verify/      — verify & scan ticket via body hash (QR scanner, Organizer only)
-
-Responsive / device-aware parameters
-────────────────────────────────────
-?device=mobile   → compact response (fewer fields, smaller images, 10/page)
-?device=tablet   → medium response (all fields, 15/page)
-?device=desktop  → full response (default, 20/page)
 """
 
 from django.shortcuts import get_object_or_404
@@ -35,8 +29,7 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import EventFilter
-from .models import Event, Ticket
-from .pagination import DeviceAwarePagination
+from .models import Event, Ticket, UserEventLike
 from .permissions import IsOrganizer, IsOrganizerOrReadOnly, IsEventOwnerOrReadOnly
 from .serializers import (
     EventListSerializer,
@@ -46,52 +39,31 @@ from .serializers import (
     TicketPurchaseSerializer,
     TicketSerializer,
 )
-from .utils import get_device
 
 
-# --------------------------------------------------------------------------- #
-# Device-aware mixin
-# --------------------------------------------------------------------------- #
-
-class DeviceAwareMixin:
-    """
-    Mixin for list views that injects `device` into the serializer context.
-
-    Reads ?device= from query params and passes it down so serializers can
-    adjust their field set and image size accordingly.
-
-    Apply to any view that returns a list of events or tickets:
-        class MyView(DeviceAwareMixin, generics.ListAPIView):
-            ...
-    """
-
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx["device"] = get_device(self.request)
-        return ctx
+# Permission classes are defined in events/permissions.py
+# IsOrganizer, IsOrganizerOrReadOnly, IsEventOwnerOrReadOnly
+# are imported above and applied per-view.
 
 
 # --------------------------------------------------------------------------- #
 # Event Views
 # --------------------------------------------------------------------------- #
 
-class EventListCreateView(DeviceAwareMixin, generics.ListCreateAPIView):
+class EventListCreateView(generics.ListCreateAPIView):
     """
     GET  /api/events/  — public list with filtering
     POST /api/events/  — create (Organizer only)
-
-    ?device=mobile|tablet|desktop  controls field set and page size.
     """
-    permission_classes  = [IsOrganizerOrReadOnly]
-    pagination_class    = DeviceAwarePagination
-    filter_backends     = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class     = EventFilter
-    search_fields       = ["title", "description", "venue_name"]
-    ordering_fields     = ["date", "price", "created_at"]
-    ordering            = ["date"]
+    permission_classes = [IsOrganizerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = EventFilter
+    search_fields = ["title", "description", "venue_name"]
+    ordering_fields = ["date", "price", "created_at"]
+    ordering = ["date"]
 
     def get_queryset(self):
-        """Only show published events — tickets_remaining annotated at DB level."""
+        """Only show published events — tickets_remaining annotated at DB level to avoid N+1."""
         return (
             Event.objects
             .select_related("organizer")
@@ -105,6 +77,30 @@ class EventListCreateView(DeviceAwareMixin, generics.ListCreateAPIView):
             )
         )
 
+    def get_serializer_context(self):
+        """
+        Inject a pre-fetched set of liked event IDs into serializer context.
+
+        For an authenticated user, this runs ONE extra query to fetch all
+        liked event PKs, stores them as a Python set in the context, and
+        lets EventListSerializer.get_is_liked() do an O(1) `in` check
+        instead of one DB query per event row.
+
+        Anonymous users get an empty set (no DB query needed).
+        """
+        ctx = super().get_serializer_context()
+        request = ctx.get("request")
+        if request and request.user and request.user.is_authenticated:
+            liked_ids = set(
+                UserEventLike.objects
+                .filter(user=request.user)
+                .values_list("event_id", flat=True)
+            )
+        else:
+            liked_ids = set()
+        ctx["_user_likes_ids"] = liked_ids
+        return ctx
+
     def get_serializer_class(self):
         if self.request.method == "POST":
             return EventCreateUpdateSerializer
@@ -117,8 +113,8 @@ class EventListCreateView(DeviceAwareMixin, generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         event = serializer.save(organizer=request.user)
-        # Return full detail view on creation (device context forwarded)
-        output = EventDetailSerializer(event, context=self.get_serializer_context())
+        # Return the full detail view on creation
+        output = EventDetailSerializer(event, context={"request": request})
         return Response(output.data, status=status.HTTP_201_CREATED)
 
 
@@ -138,7 +134,7 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
         return EventDetailSerializer
 
 
-class OrganizerEventListView(DeviceAwareMixin, generics.ListAPIView):
+class OrganizerEventListView(generics.ListAPIView):
     """
     GET /api/organizer/events/
 
@@ -148,15 +144,13 @@ class OrganizerEventListView(DeviceAwareMixin, generics.ListAPIView):
 
     Supports ordering: ?ordering=date | -date | price | created_at
     Auth: Bearer token — Organizer only.
-    ?device= is forwarded to the serializer for image-size selection.
     """
-    serializer_class  = OrganizerEventSerializer
+    serializer_class = OrganizerEventSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class  = DeviceAwarePagination
-    filter_backends   = [filters.OrderingFilter, filters.SearchFilter]
-    ordering_fields   = ["date", "price", "created_at", "tickets_sold"]
-    ordering          = ["-created_at"]
-    search_fields     = ["title", "venue_name"]
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ["date", "price", "created_at", "tickets_sold"]
+    ordering = ["-created_at"]
+    search_fields = ["title", "venue_name"]
 
     def get_queryset(self):
         """
@@ -285,7 +279,7 @@ class TicketPurchaseView(generics.CreateAPIView):
         return Response(output.data, status=status.HTTP_201_CREATED)
 
 
-class UserTicketListView(DeviceAwareMixin, generics.ListAPIView):
+class UserTicketListView(generics.ListAPIView):
     """
     GET /api/user/tickets/
 
@@ -301,17 +295,11 @@ class UserTicketListView(DeviceAwareMixin, generics.ListAPIView):
       ?status=upcoming  — events whose date > now and not yet scanned
       ?status=past      — events whose date <= now
       ?status=used      — tickets that have already been scanned
-
-    Responsive:
-      ?device=mobile   — compact ticket fields, 10/page
-      ?device=tablet   — all fields, 15/page
-      ?device=desktop  — all fields, 20/page (default)
     """
-    serializer_class  = TicketSerializer
+    serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class  = DeviceAwarePagination
-    filter_backends   = [filters.OrderingFilter]
-    ordering_fields   = ["purchased_at", "event__date"]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["purchased_at", "event__date"]
 
     def get_queryset(self):
         from django.utils import timezone
@@ -480,3 +468,119 @@ class TicketVerifyView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# --------------------------------------------------------------------------- #
+# Like / Save Event Views
+# --------------------------------------------------------------------------- #
+
+class LikeEventToggleView(APIView):
+    """
+    POST   /api/events/<id>/like/  — like (save) an event
+    DELETE /api/events/<id>/like/  — unlike (unsave) an event
+
+    Acts as a toggle: POST is idempotent (liking twice is safe),
+    DELETE returns 404 if the like does not exist.
+
+    Auth: Bearer token required.
+
+    POST Responses:
+      201 — { "liked": true,  "likes_count": 42 }  (new like created)
+      200 — { "liked": true,  "likes_count": 42 }  (already liked — idempotent)
+      404 — event not found
+
+    DELETE Responses:
+      200 — { "liked": false, "likes_count": 41 }  (like removed)
+      404 — like not found or event not found
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_event(self, event_id):
+        return get_object_or_404(Event, pk=event_id, is_published=True)
+
+    def post(self, request, event_id):
+        """Like (save) an event. Idempotent — safe to call multiple times."""
+        event = self._get_event(event_id)
+        like, created = UserEventLike.objects.get_or_create(
+            user=request.user,
+            event=event,
+        )
+        likes_count = event.likes.count()
+        return Response(
+            {"liked": True, "likes_count": likes_count},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request, event_id):
+        """Unlike (unsave) an event."""
+        event = self._get_event(event_id)
+        deleted, _ = UserEventLike.objects.filter(
+            user=request.user, event=event
+        ).delete()
+        if not deleted:
+            return Response(
+                {"detail": "You have not liked this event."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        likes_count = event.likes.count()
+        return Response(
+            {"liked": False, "likes_count": likes_count},
+            status=status.HTTP_200_OK,
+        )
+
+
+class UserLikedEventsView(generics.ListAPIView):
+    """
+    GET /api/user/liked-events/
+
+    Returns all events that the currently authenticated user has liked/saved,
+    ordered by most recently liked first.
+
+    Each event is serialized with EventListSerializer (same shape as the
+    public event list, including is_liked=True for every result).
+
+    Supports:
+      ?ordering=liked_at | event__date | event__title
+
+    Auth: Bearer token required.
+    """
+    serializer_class   = EventListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends    = [filters.OrderingFilter]
+    ordering_fields    = ["liked_at", "event__date", "event__title"]
+    ordering           = ["-liked_at"]
+
+    def get_queryset(self):
+        """
+        Fetch the events the user has liked, annotated for tickets_remaining
+        so the serializer doesn't need extra queries for that field either.
+        """
+        user = self.request.user
+        return (
+            Event.objects
+            .select_related("organizer")
+            .filter(likes__user=user, is_published=True)
+            .annotate(
+                _tickets_sold=Count("tickets"),
+                _tickets_remaining=ExpressionWrapper(
+                    F("total_tickets") - Count("tickets"),
+                    output_field=IntegerField(),
+                ),
+                # liked_at for ordering support
+                liked_at=F("likes__liked_at"),
+            )
+            .order_by("-liked_at")
+        )
+
+    def get_serializer_context(self):
+        """
+        Inject liked event IDs into serializer context.
+        Since every event in this view IS liked by definition,
+        we can pass all their PKs as a set for O(1) is_liked lookups.
+        """
+        ctx = super().get_serializer_context()
+        # We know every event in this queryset is liked; pre-build the set
+        # by re-using the queryset's PK values.
+        qs = self.get_queryset()
+        ctx["_user_likes_ids"] = set(qs.values_list("pk", flat=True))
+        return ctx

@@ -6,8 +6,6 @@ Custom User model with role-based access (Regular User / Event Organizer).
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from imagekit.models import ImageSpecField
-from imagekit.processors import ResizeToFill
 
 
 class User(AbstractUser):
@@ -35,22 +33,6 @@ class User(AbstractUser):
         upload_to="avatars/",
         null=True,
         blank=True,
-    )
-
-    # ------------------------------------------------------------------ #
-    # Responsive avatar variants (virtual — no extra DB columns)
-    # ------------------------------------------------------------------ #
-    avatar_thumbnail = ImageSpecField(
-        source="avatar",
-        processors=[ResizeToFill(80, 80)],
-        format="JPEG",
-        options={"quality": 80},
-    )
-    avatar_medium = ImageSpecField(
-        source="avatar",
-        processors=[ResizeToFill(200, 200)],
-        format="JPEG",
-        options={"quality": 85},
     )
 
     bio = models.TextField(blank=True, default="")

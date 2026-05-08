@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
-    "imagekit",          # Multi-size image generation (responsive images)
     # Local
     "accounts",
     "events",
@@ -188,9 +187,24 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # ---------------------------------------------------------------------------
-# django-imagekit — Responsive image generation
+# Email — Console backend for development, SMTP for production
 # ---------------------------------------------------------------------------
-# Images are generated on first access and cached to disk (optimistic strategy).
-# Cache lives inside MEDIA_ROOT/CACHE/ so it is served by the same media URL.
-IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = "imagekit.cachefiles.strategies.Optimistic"
-IMAGEKIT_CACHEFILE_DIR = "CACHE/images"
+# In development, emails are printed to the terminal (no mail server needed).
+# Switch to django.core.mail.backends.smtp.EmailBackend in production and
+# provide the variables below via your .env file.
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST       = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT       = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS    = os.environ.get("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST_USER  = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL  = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@goattend.app")
+
+# ---------------------------------------------------------------------------
+# Frontend URL — used to build password-reset links sent by email
+# ---------------------------------------------------------------------------
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:8000")
+

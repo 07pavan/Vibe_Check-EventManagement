@@ -3,7 +3,7 @@ events/admin.py
 """
 
 from django.contrib import admin
-from .models import Event, Ticket
+from .models import Event, Ticket, UserEventLike
 
 
 class TicketInline(admin.TabularInline):
@@ -41,3 +41,12 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "event__title", "ticket_hash")
     readonly_fields = ("ticket_hash", "purchased_at", "scanned_at")
     ordering = ("-purchased_at",)
+
+
+@admin.register(UserEventLike)
+class UserEventLikeAdmin(admin.ModelAdmin):
+    list_display = ("user", "event", "liked_at")
+    list_filter = ("event__category",)
+    search_fields = ("user__username", "event__title")
+    ordering = ("-liked_at",)
+
