@@ -168,34 +168,3 @@ function toggleLike(eventObj) {
   else         { map[id] = eventObj; saveLikedMap(map); return true; }
 }
 function getLikedEvents()  { return Object.values(getLikedMap()); }
-
-// ── Password Reset ─────────────────────────────────────────────────────────
-/**
- * Step 1 — request a reset email.
- * POST /api/auth/password/reset/
- * No auth required. Always resolves (backend returns 200 regardless of email existence).
- */
-function requestPasswordReset(email) {
-  return apiFetch('/auth/password/reset/', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  });
-}
-
-/**
- * Step 2 — submit new password with uid + token from email link.
- * POST /api/auth/password/reset/confirm/
- * No auth required.
- */
-function confirmPasswordReset(uid, token, newPassword, newPassword2) {
-  return apiFetch('/auth/password/reset/confirm/', {
-    method: 'POST',
-    body: JSON.stringify({
-      uid,
-      token,
-      new_password:  newPassword,
-      new_password2: newPassword2,
-    }),
-  });
-}
-
