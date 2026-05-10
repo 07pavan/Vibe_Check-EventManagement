@@ -9,7 +9,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from accounts.serializers import PublicUserSerializer
-from .models import Event, Ticket, UserEventLike
+from .models import Event, Ticket
 
 User = get_user_model()
 
@@ -21,42 +21,18 @@ User = get_user_model()
 class EventListSerializer(serializers.ModelSerializer):
     """
     Compact representation used for GET /api/events/.
-    Includes computed fields: tickets_remaining, is_upcoming, is_liked.
+    Includes computed fields: tickets_remaining, is_upcoming.
     """
 
-    organizer         = PublicUserSerializer(read_only=True)
+    organizer = PublicUserSerializer(read_only=True)
     tickets_remaining = serializers.SerializerMethodField()
-    is_upcoming       = serializers.BooleanField(read_only=True)
-    category_display  = serializers.CharField(read_only=True, source="get_category_display")
-    is_liked          = serializers.SerializerMethodField()
+    is_upcoming = serializers.BooleanField(read_only=True)
+    category_display = serializers.CharField(read_only=True, source="get_category_display")
 
     def get_tickets_remaining(self, obj):
         # Use DB annotation if available (list view), else Python property (detail view)
         val = getattr(obj, "_tickets_remaining", None)
         return val if val is not None else obj.tickets_remaining
-
-    def get_is_liked(self, obj) -> bool:
-        """
-        Returns True if the currently authenticated user has liked this event.
-
-        Uses the `_user_likes_ids` set injected into the serializer context
-        by EventListCreateView (a Python set of liked event PKs pre-fetched
-        in a single extra query). Falls back to a live DB lookup when the
-        context value is absent (e.g. detail view, organizer view).
-        """
-        request = self.context.get("request")
-        if not request or not request.user or not request.user.is_authenticated:
-            return False
-
-        # Fast path: use the pre-fetched set of liked event IDs in context
-        liked_ids = self.context.get("_user_likes_ids")
-        if liked_ids is not None:
-            return obj.pk in liked_ids
-
-        # Fallback: single DB lookup (used outside the list view)
-        return UserEventLike.objects.filter(
-            user=request.user, event=obj
-        ).exists()
 
     class Meta:
         model = Event
@@ -75,7 +51,6 @@ class EventListSerializer(serializers.ModelSerializer):
             "tickets_remaining",
             "is_upcoming",
             "is_published",
-            "is_liked",
         ]
 
 
