@@ -1,13 +1,75 @@
-asgiref==3.11.1
+# ============================================================
+# GoAttend — Production Requirements
+# ============================================================
+# Generated after venv audit on 2026-05-14
+#
+# INSTALL:  pip install -r requirements.txt
+# VERIFY:   pip check   (checks for dependency conflicts)
+# FREEZE:   pip freeze > requirements.txt  (after manual installs)
+# ============================================================
+
+# ── Django Core ──────────────────────────────────────────────
 Django==6.0.5
-django-cors-headers==4.9.0
-django-filter==25.1
-django-ratelimit==4.1.0
+asgiref==3.11.1
+sqlparse==0.5.5
+
+# ── Django REST Framework ─────────────────────────────────────
 djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
-pillow==12.2.0
-psycopg2-binary==2.9.12
 PyJWT==2.12.1
+
+# ── Database ──────────────────────────────────────────────────
+# psycopg2-binary: PostgreSQL adapter (binary = no C compile needed on Render)
+psycopg2-binary==2.9.12
+
+# dj-database-url: Parses DATABASE_URL string from env into Django DATABASES dict
+# Required for Neon.tech connection on Render
+dj-database-url==3.1.2
+
+# ── Production Server ────────────────────────────────────────
+# gunicorn: WSGI server for production (Render/Heroku standard)
+# Django's built-in runserver is NOT suitable for production
+gunicorn==26.0.0
+
+# ── Static Files ─────────────────────────────────────────────
+# whitenoise: Serves compressed static files directly from Django
+# Required because Render has no nginx; without this, /admin CSS breaks
+whitenoise==6.12.0
+
+# ── Media Storage (Cloudinary) ───────────────────────────────
+# cloudinary: Cloudinary SDK for Python
+# django-cloudinary-storage: Plugs Cloudinary into Django's DEFAULT_FILE_STORAGE
+# Required because Render filesystem is ephemeral — uploads are wiped on redeploy
+cloudinary==1.41.0
+django-cloudinary-storage==0.3.0
+
+# ── Image Processing ─────────────────────────────────────────
+# pillow: Required by Django's ImageField (avatar, event images)
+pillow==12.2.0
+
+# ── CORS ─────────────────────────────────────────────────────
+# Allows Vercel frontend (different origin) to call the Render API
+django-cors-headers==4.9.0
+
+# ── Filtering ────────────────────────────────────────────────
+django-filter==25.1
+
+# ── Rate Limiting ────────────────────────────────────────────
+django-ratelimit==4.1.0
+
+# ── Environment Variables ────────────────────────────────────
+# python-dotenv: Loads .env file in local development
+# On Render, environment variables are injected directly — dotenv is a no-op
 python-dotenv==1.2.2
-sqlparse==0.5.5
+
+# ── Timezone Data ────────────────────────────────────────────
+# Required on Windows; also good practice on Linux containers
 tzdata==2026.2
+
+# ── Cloudinary SDK transitive deps (pinned for reproducibility) ──
+requests==2.34.0
+certifi==2026.4.22
+charset-normalizer==3.4.7
+idna==3.15
+urllib3==2.7.0
+six==1.17.0

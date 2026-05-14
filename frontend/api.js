@@ -1,21 +1,96 @@
-// ── Shared API Client ─────────────────────────────────────────────────────
-const API = 'http://127.0.0.1:8000/api';
+/**
+ * frontend/api.js — GoAttend Centralized API Client
+ *
+ * REQUIRES: config.js must be loaded BEFORE this file on every page.
+ *   <script src="config.js"></script>
+ *   <script src="api.js"></script>
+ *
+ * ARCHITECTURE:
+ * ─────────────────────────────────────────────────────────────────────
+ *   config.js    → sets window.GOATTEND_API (the backend base URL)
+ *   api.js       → reads it, all fetch calls go through apiFetch()
+ *   *.html pages → call the exported functions (login, fetchEvents, etc.)
+ *
+ * WHY CENTRALIZED:
+ *   Every page previously had its own fetch logic scattered inline.
+ *   Centralizing means: fix auth bug once → fixed everywhere.
+ *   Add a header once → present on all requests.
+ *
+ * TOKEN STORAGE:
+ *   Tokens are stored in localStorage under namespaced keys.
+ *   WHY localStorage (not cookies):
+ *     - No CSRF risk since the API uses Bearer tokens, not cookies
+ *     - Simpler to implement without httpOnly cookie setup
+ *     - Accessible across tabs for the same origin
+ *   RISK: Vulnerable to XSS. Mitigated by not using eval(), avoiding
+ *   innerHTML with user content, and keeping the frontend simple.
+ */
 
-// ── Token / user storage ──────────────────────────────────────────────────
-function getToken()    { return localStorage.getItem('goattend_token'); }
-function getRefresh()  { return localStorage.getItem('goattend_refresh'); }
-function setToken(t)   { localStorage.setItem('goattend_token', t); }
-function setRefresh(t) { localStorage.setItem('goattend_refresh', t); }
-function clearAuth()   {
-  localStorage.removeItem('goattend_token');
-  localStorage.removeItem('goattend_refresh');
-  localStorage.removeItem('goattend_user');
+// ── API base URL (from config.js) ─────────────────────────────────────────
+// Falls back to localhost if config.js was not loaded (safety net only)
+const API = window.GOATTEND_API || 'http://127.0.0.1:8001/api';
+
+// Request timeout in milliseconds.
+// Render free tier can have slow cold starts — 15s is generous but safe.
+const REQUEST_TIMEOUT_MS = 15000;
+
+// ── Token storage (namespaced to avoid collisions) ────────────────────────
+const KEYS = {
+  token:   'goattend_token',
+  refresh: 'goattend_refresh',
+  user:    'goattend_user',
+  liked:   'goattend_liked',
+};
+
+function getToken()    { return localStorage.getItem(KEYS.token); }
+function getRefresh()  { return localStorage.getItem(KEYS.refresh); }
+function setToken(t)   { localStorage.setItem(KEYS.token, t); }
+function setRefresh(t) { localStorage.setItem(KEYS.refresh, t); }
+function clearAuth() {
+  localStorage.removeItem(KEYS.token);
+  localStorage.removeItem(KEYS.refresh);
+  localStorage.removeItem(KEYS.user);
 }
-function getUser() { try { return JSON.parse(localStorage.getItem('goattend_user')); } catch { return null; } }
-function setUser(u) { localStorage.setItem('goattend_user', JSON.stringify(u)); }
+function getUser()  {
+  try { return JSON.parse(localStorage.getItem(KEYS.user)); }
+  catch { return null; }
+}
+function setUser(u) { localStorage.setItem(KEYS.user, JSON.stringify(u)); }
 function isLoggedIn() { return !!getToken(); }
 
+// ── Error normalization ───────────────────────────────────────────────────
+/**
+ * Extracts a human-readable error message from any DRF error shape.
+ *
+ * DRF returns errors in several formats:
+ *   { "detail": "Not found." }
+ *   { "email": ["Enter a valid email address."] }
+ *   { "non_field_errors": ["Passwords do not match."] }
+ *
+ * This function collapses all of them into a single string.
+ */
+function extractErrorMessage(errorBody) {
+  if (!errorBody || typeof errorBody !== 'object') return 'An unexpected error occurred.';
+  if (typeof errorBody.detail === 'string') return errorBody.detail;
+  const messages = [];
+  for (const [field, val] of Object.entries(errorBody)) {
+    const text = Array.isArray(val) ? val.join(' ') : String(val);
+    messages.push(field === 'non_field_errors' ? text : `${field}: ${text}`);
+  }
+  return messages.join(' | ') || 'An unexpected error occurred.';
+}
+
 // ── Silent token refresh ──────────────────────────────────────────────────
+/**
+ * Attempts to get a new access token using the stored refresh token.
+ * Called automatically when a 401 is received.
+ *
+ * ROTATE_REFRESH_TOKENS=True is set on the backend, so every successful
+ * refresh returns a NEW refresh token. We must store it immediately or
+ * the user will be logged out on the next refresh attempt.
+ *
+ * Returns: true if refresh succeeded, false if session is fully expired.
+ */
 async function tryRefreshToken() {
   const refresh = getRefresh();
   if (!refresh) return false;
@@ -24,23 +99,64 @@ async function tryRefreshToken() {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ refresh }),
+      signal:  AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!res.ok) { clearAuth(); return false; }
+    if (!res.ok) {
+      clearAuth();
+      return false;
+    }
     const data = await res.json();
     setToken(data.access);
-    if (data.refresh) setRefresh(data.refresh); // ROTATE_REFRESH_TOKENS support
+    // IMPORTANT: store the rotated refresh token immediately
+    if (data.refresh) setRefresh(data.refresh);
     return true;
-  } catch { return false; }
+  } catch {
+    // Network error or timeout — don't clear auth, let the page handle it
+    return false;
+  }
 }
 
-// ── Core fetch wrapper with auto-retry on 401 ─────────────────────────────
+// ── Core fetch wrapper ────────────────────────────────────────────────────
+/**
+ * Central request function used by all API calls.
+ *
+ * Features:
+ *  - Injects Authorization: Bearer <token> automatically
+ *  - On 401: silently refreshes token and retries once
+ *  - On second 401: clears auth and redirects to login
+ *  - Normalizes all error responses
+ *  - Enforces REQUEST_TIMEOUT_MS timeout on every request
+ *  - Handles 204 No Content (returns empty object)
+ *
+ * @param {string} path    - API path e.g. '/events/'
+ * @param {object} opts    - fetch options (method, body, headers, etc.)
+ * @param {boolean} _retried - internal flag to prevent infinite refresh loops
+ */
 async function apiFetch(path, opts = {}, _retried = false) {
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(opts.headers || {}),
+  };
+
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(API + path, { ...opts, headers });
 
-  // Access token expired — try a silent refresh once before giving up
+  let res;
+  try {
+    res = await fetch(API + path, {
+      ...opts,
+      headers,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (err) {
+    // Network failure or timeout — throw a user-friendly error
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      throw { detail: 'Request timed out. The server may be starting up — please try again.' };
+    }
+    throw { detail: 'Cannot reach the server. Check your internet connection.' };
+  }
+
+  // ── 401 handling: try silent token refresh ────────────────────────────
   if (res.status === 401 && !_retried) {
     const refreshed = await tryRefreshToken();
     if (refreshed) return apiFetch(path, opts, true);
@@ -49,12 +165,69 @@ async function apiFetch(path, opts = {}, _retried = false) {
     return;
   }
 
-  const data = res.status === 204 ? {} : await res.json();
+  // ── Parse response ────────────────────────────────────────────────────
+  // 204 No Content has no body — return empty object
+  let data;
+  try {
+    data = res.status === 204 ? {} : await res.json();
+  } catch {
+    // Response was not JSON (e.g., HTML error page from server crash)
+    throw { detail: `Server error (HTTP ${res.status}). Please try again later.` };
+  }
+
+  if (!res.ok) throw data;
+  return data;
+}
+
+// ── Multipart upload wrapper (for FormData — images, files) ──────────────
+/**
+ * Used for file uploads (event images, avatars).
+ * DO NOT set Content-Type manually — the browser sets it with the
+ * correct multipart boundary when body is a FormData object.
+ *
+ * Also handles 401 → refresh → retry like apiFetch.
+ */
+async function apiFetchMultipart(path, method, formData, _retried = false) {
+  const headers = {};
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method,
+      headers,
+      body: formData,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      throw { detail: 'Upload timed out. Please try again.' };
+    }
+    throw { detail: 'Cannot reach the server. Check your internet connection.' };
+  }
+
+  if (res.status === 401 && !_retried) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) return apiFetchMultipart(path, method, formData, true);
+    clearAuth();
+    window.location.href = 'login.html';
+    return;
+  }
+
+  let data;
+  try {
+    data = res.status === 204 ? {} : await res.json();
+  } catch {
+    throw { detail: `Server error (HTTP ${res.status}). Please try again later.` };
+  }
+
   if (!res.ok) throw data;
   return data;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────
+
 async function login(username, password) {
   const data = await apiFetch('/auth/token/', {
     method: 'POST',
@@ -68,7 +241,10 @@ async function login(username, password) {
 }
 
 async function register(payload) {
-  return apiFetch('/auth/register/', { method: 'POST', body: JSON.stringify(payload) });
+  return apiFetch('/auth/register/', {
+    method: 'POST',
+    body:   JSON.stringify(payload),
+  });
 }
 
 async function logout() {
@@ -77,89 +253,100 @@ async function logout() {
     try {
       await apiFetch('/auth/logout/', {
         method: 'POST',
-        body: JSON.stringify({ refresh }),
+        body:   JSON.stringify({ refresh }),
       });
-    } catch { /* server-side blacklist failed — still clear locally */ }
+    } catch {
+      // Server-side blacklist failed — still clear locally
+      // The access token will expire on its own (2h TTL)
+    }
   }
   clearAuth();
   window.location.href = 'login.html';
 }
 
 // ── Events ────────────────────────────────────────────────────────────────
+
 function fetchEvents(params = {}) {
   const qs = new URLSearchParams(params).toString();
   return apiFetch('/events/' + (qs ? '?' + qs : ''));
 }
-function fetchEvent(id) { return apiFetch(`/events/${id}/`); }
 
-// ── Tickets ───────────────────────────────────────────────────────────────
-function purchaseTicket(eventId) {
-  return apiFetch('/tickets/purchase/', { method: 'POST', body: JSON.stringify({ event: eventId }) });
-}
-function fetchMyTickets() { return apiFetch('/user/tickets/'); }
-function checkIsOrganizer() { return apiFetch('/auth/is-organizer/'); }
-function verifyTicket(ticketHash) {
-  return apiFetch('/tickets/verify/', {
-    method: 'POST',
-    body: JSON.stringify({ ticket_hash: ticketHash }),
-  });
+function fetchEvent(id) {
+  return apiFetch(`/events/${id}/`);
 }
 
-// ── Organizer API ─────────────────────────────────────────────────────────
-function fetchOrganizerEvents(params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  return apiFetch('/organizer/events/' + (qs ? '?' + qs : ''));
-}
-function fetchOrganizerAttendees(eventId) {
-  return apiFetch(`/organizer/events/${eventId}/attendees/`);
-}
+// ── Event mutations (multipart — supports image uploads) ──────────────────
 
 function createEvent(formData) {
-  // formData is a FormData object so the browser sets multipart/form-data
-  // automatically — do NOT set Content-Type header manually here.
-  const token = getToken();
-  return fetch(`${API}/events/`, {
-    method:  'POST',
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    body:    formData,
-  }).then(async res => {
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
-  });
+  return apiFetchMultipart('/events/', 'POST', formData);
 }
 
 function updateEvent(id, formData) {
-  const token = getToken();
-  return fetch(`${API}/events/${id}/`, {
-    method:  'PATCH',
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    body:    formData,
-  }).then(async res => {
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
-  });
+  return apiFetchMultipart(`/events/${id}/`, 'PATCH', formData);
 }
 
 function deleteEvent(id) {
   return apiFetch(`/events/${id}/`, { method: 'DELETE' });
 }
 
-// ── Format helpers ────────────────────────────────────────────────────────
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+// ── Tickets ───────────────────────────────────────────────────────────────
+
+function purchaseTicket(eventId) {
+  return apiFetch('/tickets/purchase/', {
+    method: 'POST',
+    body:   JSON.stringify({ event: eventId }),
   });
 }
-function fmtPrice(p) { return parseFloat(p) === 0 ? 'FREE' : '₹' + parseFloat(p).toFixed(0); }
+
+function fetchMyTickets() {
+  return apiFetch('/user/tickets/');
+}
+
+function verifyTicket(ticketHash) {
+  return apiFetch('/tickets/verify/', {
+    method: 'POST',
+    body:   JSON.stringify({ ticket_hash: ticketHash }),
+  });
+}
+
+// ── Organizer ─────────────────────────────────────────────────────────────
+
+function checkIsOrganizer() {
+  return apiFetch('/auth/is-organizer/');
+}
+
+function fetchOrganizerEvents(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch('/organizer/events/' + (qs ? '?' + qs : ''));
+}
+
+function fetchOrganizerAttendees(eventId) {
+  return apiFetch(`/organizer/events/${eventId}/attendees/`);
+}
+
+// ── Format helpers ────────────────────────────────────────────────────────
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function fmtPrice(p) {
+  return parseFloat(p) === 0 ? 'FREE' : '₹' + parseFloat(p).toFixed(0);
+}
 
 const CATEGORY_EMOJI = { music: '🎵', tech: '💻', food: '🍜', arts: '🎨' };
 
-// ── Liked Events (localStorage) ───────────────────────────────────────────
-// Stores full event objects so liked.html works offline / without refetch
-function getLikedMap()     { try { return JSON.parse(localStorage.getItem('goattend_liked') || '{}'); } catch { return {}; } }
-function saveLikedMap(map) { localStorage.setItem('goattend_liked', JSON.stringify(map)); }
+// ── Liked Events (client-side only — no backend) ──────────────────────────
+// Stores full event objects so liked.html works without a backend refetch.
+
+function getLikedMap()     {
+  try { return JSON.parse(localStorage.getItem(KEYS.liked) || '{}'); }
+  catch { return {}; }
+}
+function saveLikedMap(map) { localStorage.setItem(KEYS.liked, JSON.stringify(map)); }
 function isLiked(id)       { return !!getLikedMap()[id]; }
 function toggleLike(eventObj) {
   const map = getLikedMap();
@@ -168,3 +355,17 @@ function toggleLike(eventObj) {
   else         { map[id] = eventObj; saveLikedMap(map); return true; }
 }
 function getLikedEvents()  { return Object.values(getLikedMap()); }
+
+// ── Debug helper (only in development) ───────────────────────────────────
+if (window.GOATTEND_ENV === 'development') {
+  window.__goattend = {
+    API,
+    getToken,
+    getUser,
+    clearAuth,
+    extractErrorMessage,
+    // Usage: __goattend.API → shows current backend URL in console
+    // Usage: __goattend.getToken() → shows current JWT for debugging
+  };
+  console.debug('[GoAttend] API client loaded.', { env: window.GOATTEND_ENV, api: API });
+}

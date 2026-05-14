@@ -1,7 +1,33 @@
+# ── Python ────────────────────────────────────────────────────
 venv/
 __pycache__/
 *.pyc
-.env
-media/
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ── Django ────────────────────────────────────────────────────
+*.log
 db.sqlite3
+staticfiles/
+media/
+
+# ── Environment secrets — NEVER commit these ──────────────────
+.env
+.env.local
+.env.production
+
+# ── Frontend — config.js contains env-specific API URL ────────
+# Commit config.js only if it contains the production URL.
+# For local dev, keep config.js local and swap before deploying.
+# Uncomment the line below if you want to exclude it from git:
+# frontend/config.js
+
+# ── OS / Editor ───────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

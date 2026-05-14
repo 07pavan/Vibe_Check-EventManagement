@@ -96,18 +96,14 @@ body{font-family:'Inter',sans-serif}
         </div>
       </div>
 
-      <!-- Organizer Toggle -->
-      <div class="flex items-center gap-md py-sm px-1">
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="r-organizer" class="sr-only peer"/>
-          <div class="w-11 h-6 bg-outline-variant rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-          <span class="ml-3 text-body-md text-on-surface font-medium">I am an Event Organizer</span>
-        </label>
+      <!-- Organizer note (read-only — role is assigned by admin after review) -->
+      <div class="flex items-start gap-3 py-sm px-1 bg-surface-container-low rounded-xl p-3">
+        <span class="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">info</span>
+        <p class="text-xs text-on-surface-variant">
+          All new accounts start as <strong>Regular Users</strong>.
+          To become an <strong>Event Organizer</strong>, contact us after registration.
+        </p>
       </div>
-      <p id="org-hint" class="hidden text-xs text-on-surface-variant bg-surface-container-low p-3 rounded-xl -mt-2">
-        <span class="material-symbols-outlined text-sm align-text-bottom text-primary">info</span>
-        Organizers can create events, manage ticket sales, and scan QR codes at the door.
-      </p>
 
       <!-- Submit -->
       <div class="pt-sm">
@@ -127,12 +123,10 @@ body{font-family:'Inter',sans-serif}
   </div>
 </main>
 
+<script src="config.js"></script>
 <script src="api.js"></script>
 <script>
-// Show organizer hint on toggle
-document.getElementById('r-organizer').addEventListener('change', function() {
-  document.getElementById('org-hint').classList.toggle('hidden', !this.checked);
-});
+
 
 async function doRegister(e) {
   e.preventDefault();
@@ -146,7 +140,8 @@ async function doRegister(e) {
   const email    = document.getElementById('r-email').value.trim();
   const pass     = document.getElementById('r-pass').value;
   const pass2    = document.getElementById('r-pass2').value;
-  const role     = document.getElementById('r-organizer').checked ? 'organizer' : 'regular';
+  // NOTE: `role` is intentionally NOT sent. The backend always assigns
+  // 'regular' to new accounts. Organizer access is granted via admin only.
 
   if (pass !== pass2) {
     errEl.textContent = 'Passwords do not match.';
@@ -158,20 +153,16 @@ async function doRegister(e) {
   btn.textContent = 'Creating…';
 
   try {
-    await register({
-      username, email,
-      password: pass, password2: pass2,
-      role
-    });
+    await register({ username, email, password: pass, password2: pass2 });
     succEl.classList.remove('hidden');
     document.getElementById('reg-form').classList.add('hidden');
     // Redirect to login after 2s
     setTimeout(() => { window.location.href = 'login.html'; }, 2000);
   } catch(err) {
-    const msgs = Object.entries(err)
-      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-      .join(' | ');
-    errEl.textContent = msgs || 'Registration failed.';
+    // Use the centralized error normalizer from api.js
+    errEl.textContent = (typeof extractErrorMessage === 'function')
+      ? extractErrorMessage(err)
+      : (err.detail || 'Registration failed.');
     errEl.classList.remove('hidden');
   } finally {
     btn.disabled = false;
