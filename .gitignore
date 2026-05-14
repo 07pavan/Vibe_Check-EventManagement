@@ -25,6 +25,10 @@ media/
 # Uncomment the line below if you want to exclude it from git:
 # frontend/config.js
 
+# ── Prototype / Dev Scratch ───────────────────────────────────
+frontend/stitch_vue_event_discovery_hub/
+working_flows.md
+
 # ── OS / Editor ───────────────────────────────────────────────
 .DS_Store
 Thumbs.db
