@@ -1,0 +1,31 @@
+# ── Vercel Ignore File ────────────────────────────────────────────────────────
+# Vercel deploys the entire repo unless told otherwise.
+# This file prevents backend/dev files from being included in the Vercel build.
+# vercel.json sets outputDirectory=frontend, so these are redundant but safe.
+
+# Django backend — not needed by Vercel
+accounts/
+core/
+events/
+manage.py
+requirements.txt
+render.yaml
+db.sqlite3
+media/
+staticfiles/
+
+# Python environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Dev/test files
+.env
+*.md
+
+# Prototype UI (not part of production frontend)
+frontend/stitch_vue_event_discovery_hub/
+
+# Git
+.git/
