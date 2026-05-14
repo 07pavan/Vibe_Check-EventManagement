@@ -15,14 +15,9 @@ services:
     plan: free
     runtime: python
 
-    # Build: install deps + collect static files into staticfiles/
-    # WhiteNoise will serve these — no separate static file server needed.
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-
-    # Pre-deploy: run migrations BEFORE the new instance goes live.
-    # This ensures the DB schema is always ahead of the code — safe for
-    # zero-downtime deploys. Render runs this as a one-off job.
-    preDeployCommand: python manage.py migrate --noinput
+    # Build: install deps, collect static files, and run migrations.
+    # We run migrations here because the free tier does not support preDeployCommand.
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate --noinput
 
     # Start: Gunicorn with 2 workers.
     # --bind 0.0.0.0:$PORT  — Render injects $PORT dynamically
