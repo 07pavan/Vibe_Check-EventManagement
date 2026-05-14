@@ -1,13 +1,10 @@
-{
+﻿{
   "version": 2,
   "name": "goattend-frontend",
-
   "outputDirectory": "frontend",
   "framework": null,
   "installCommand": null,
-
-  "buildCommand": "node -e \"const fs=require('fs'); const api=process.env.RENDER_API_URL||'http://127.0.0.1:8001'; const env=api.includes('127.0.0.1')?'development':'production'; fs.writeFileSync('frontend/config.js', 'window.GOATTEND_API = \\'' + api + '/api\\';\\nwindow.GOATTEND_ENV = \\'' + env + '\\';\\nwindow.GOATTEND_VERSION = \\'1.0.0\\';\\n');\"",
-
+  "buildCommand": "node build.js",
   "routes": [
     {
       "src": "/config.js",
@@ -22,22 +19,22 @@
     {
       "src": "/(.*\\.js)$",
       "headers": { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
-      "dest": "/frontend/$1"
+      "dest": "/frontend/"
     },
     {
       "src": "/(.*\\.css)$",
       "headers": { "Cache-Control": "public, max-age=86400, s-maxage=86400" },
-      "dest": "/frontend/$1"
+      "dest": "/frontend/"
     },
     {
       "src": "/(.*\\.(png|jpg|jpeg|gif|svg|ico|webp))$",
       "headers": { "Cache-Control": "public, max-age=604800, s-maxage=604800" },
-      "dest": "/frontend/$1"
+      "dest": "/frontend/"
     },
     {
       "src": "/(.*\\.html)$",
       "headers": { "Cache-Control": "no-store, no-cache, must-revalidate" },
-      "dest": "/frontend/$1"
+      "dest": "/frontend/"
     },
     {
       "src": "/",
@@ -45,18 +42,16 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "dest": "/frontend/"
     }
   ],
-
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     },
     {
@@ -67,9 +62,5 @@
       "source": "/(.*\\.html)",
       "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
     }
-  ],
-
-  "env": {
-    "RENDER_API_URL": "@render_api_url"
-  }
+  ]
 }
