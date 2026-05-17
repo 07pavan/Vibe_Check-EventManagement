@@ -1,66 +1,37 @@
 ﻿{
   "version": 2,
-  "name": "goattend-frontend",
   "outputDirectory": "frontend",
-  "framework": null,
-  "installCommand": null,
   "buildCommand": "node build.js",
-  "routes": [
-    {
-      "src": "/config.js",
-      "headers": { "Cache-Control": "no-store, no-cache, must-revalidate" },
-      "dest": "/frontend/config.js"
-    },
-    {
-      "src": "/api.js",
-      "headers": { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
-      "dest": "/frontend/api.js"
-    },
-    {
-      "src": "/(.*\\.js)$",
-      "headers": { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
-      "dest": "/frontend/"
-    },
-    {
-      "src": "/(.*\\.css)$",
-      "headers": { "Cache-Control": "public, max-age=86400, s-maxage=86400" },
-      "dest": "/frontend/"
-    },
-    {
-      "src": "/(.*\\.(png|jpg|jpeg|gif|svg|ico|webp))$",
-      "headers": { "Cache-Control": "public, max-age=604800, s-maxage=604800" },
-      "dest": "/frontend/"
-    },
-    {
-      "src": "/(.*\\.html)$",
-      "headers": { "Cache-Control": "no-store, no-cache, must-revalidate" },
-      "dest": "/frontend/"
-    },
-    {
-      "src": "/",
-      "dest": "/frontend/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/"
-    }
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/$1" }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/(.*\\.html)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Cache-Control", "value": "no-store" },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
       ]
     },
     {
       "source": "/config.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
     },
     {
-      "source": "/(.*\\.html)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
+      "source": "/(.*\\.js)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/(.*\\.css)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
     }
   ]
 }
