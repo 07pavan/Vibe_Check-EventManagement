@@ -321,10 +321,12 @@ class TicketSerializer(serializers.ModelSerializer):
       - qr_data        : ticket_hash string to encode as QR code
     """
 
-    event        = EventListSerializer(read_only=True)
-    qr_data      = serializers.SerializerMethodField()
-    is_upcoming  = serializers.SerializerMethodField()
-    event_status = serializers.SerializerMethodField()
+    event          = EventListSerializer(read_only=True)
+    qr_data        = serializers.SerializerMethodField()
+    is_upcoming    = serializers.SerializerMethodField()
+    event_status   = serializers.SerializerMethodField()
+    attendee_name  = serializers.SerializerMethodField()
+    attendee_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
@@ -333,6 +335,8 @@ class TicketSerializer(serializers.ModelSerializer):
             "event",
             "ticket_hash",
             "qr_data",
+            "attendee_name",
+            "attendee_email",
             "is_upcoming",
             "event_status",
             "is_scanned",
@@ -363,3 +367,13 @@ class TicketSerializer(serializers.ModelSerializer):
         if obj.is_scanned:
             return "Used"
         return "Upcoming" if obj.event.is_upcoming else "Past"
+
+    def get_attendee_name(self, obj) -> str:
+        """Full name or username of the ticket holder (shown on QR scan result)."""
+        user = obj.user
+        full = f"{user.first_name} {user.last_name}".strip()
+        return full if full else user.username
+
+    def get_attendee_email(self, obj) -> str:
+        """Email of the ticket holder."""
+        return obj.user.email

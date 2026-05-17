@@ -284,9 +284,10 @@ function showResult(type, data) {
     msgEl.textContent    = data.message || 'Ticket is valid. Welcome!';
     const t = data.ticket;
     fields.innerHTML = t ? `
-      ${field('Event',    t.event?.title    || '—')}
-      ${field('Attendee', t.event?.organizer?.username ? `@${t.event.organizer.username}` : '—')}
-      ${field('Venue',    t.event?.venue_name || '—')}
+      ${field('Event',    t.event?.title         || '—')}
+      ${field('Attendee', t.attendee_name         || '—')}
+      ${field('Email',    t.attendee_email        || '—')}
+      ${field('Venue',    t.event?.venue_name     || '—')}
       ${field('Paid',     t.price_paid ? '₹' + parseFloat(t.price_paid).toFixed(0) : '—')}
     ` : '';
   } else if (type === 'warning') {

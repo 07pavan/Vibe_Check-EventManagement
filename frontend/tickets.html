@@ -237,6 +237,8 @@ function renderFilter() {
   }
   document.getElementById('empty-state').classList.add('hidden');
   document.getElementById('tickets-list').innerHTML = filtered.map(renderTicketCard).join('');
+  // Clear QR cache before re-generating (DOM was rebuilt, old canvases are gone)
+  _qrGenerated.clear();
   // Generate QR codes after DOM is ready
   filtered.forEach(t => generateQR(t.ticket_hash, `qr-wrap-${t.id}`));
 }
