@@ -52,21 +52,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     """
     Handles new user sign-up including password confirmation.
 
-    SECURITY — Role injection prevention:
-    ─────────────────────────────────────
-    The `role` field is NOT listed in `fields`, so DRF will discard it
-    during deserialization. As a second defensive layer, `create()` also
-    explicitly pops `role` before calling create_user().
-
-    WHY TWO LAYERS?
-    Django REST Framework's serializer only validates fields that are
-    declared. If a future developer accidentally adds `role` to the
-    fields list for read purposes (e.g., to return it in the response),
-    the defensive `pop` in create() prevents it from being writable
-    without any visible change to the API contract.
-
-    This follows the principle of defense-in-depth:
-    no single point of failure controls security.
+    SECURITY — Role assignment:
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    The `role` field accepts only 'regular' or 'organizer'.
+    Admin/staff/superuser roles are impossible via this endpoint.
+    Any other value is rejected by validate_role().
     """
 
     password = serializers.CharField(
@@ -90,14 +80,27 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "last_name",
             "password",
             "password2",
-            # `role` is deliberately NOT listed here.
-            # `is_staff`, `is_superuser`, `is_active` are also excluded.
+            "role",  # Whitelisted: only 'regular' or 'organizer' accepted
+            # `is_staff`, `is_superuser`, `is_active` are excluded.
         ]
         extra_kwargs = {
             "email": {"required": True},
             "first_name": {"required": False},
             "last_name": {"required": False},
+            "role": {"required": False},
         }
+
+    def validate_role(self, value):
+        """
+        Whitelist: only 'regular' or 'organizer' are valid self-assignable roles.
+        Prevents privilege escalation to admin/staff via the API.
+        """
+        allowed = {'regular', 'organizer'}
+        if value not in allowed:
+            raise serializers.ValidationError(
+                f"Invalid role. Choose 'regular' or 'organizer'."
+            )
+        return value
 
     def validate_email(self, value):
         """
@@ -133,20 +136,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Create user with DEFENSIVE role removal.
-
-        Even though `role` is not in `fields`, we explicitly pop it here
-        as a second layer of defense. This means:
-          - If a future developer adds `role` to `fields` for read access,
-            it still cannot be written via the API.
-          - If DRF changes field-exclusion behavior in a future version,
-            this code remains safe.
+        Create user. Role is already validated by validate_role().
+        Strip any privilege-escalation fields that cannot come from self-registration.
         """
-        # Strip any privilege-escalation fields — defense-in-depth
-        validated_data.pop("role", None)
+        # These fields can NEVER be set via registration — defense-in-depth
         validated_data.pop("is_staff", None)
         validated_data.pop("is_superuser", None)
         validated_data.pop("is_active", None)  # Preserve model default (True)
+
+        # Role defaults to 'regular' if not provided
+        validated_data.setdefault("role", "regular")
 
         # create_user() hashes the password — never use objects.create() for auth users
         return User.objects.create_user(**validated_data)
